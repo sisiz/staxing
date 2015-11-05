@@ -1,5 +1,6 @@
 import random
 import string
+import time
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as expect
 from selenium.webdriver.support.ui import WebDriverWait
@@ -227,12 +228,15 @@ class Assignment(object):
         '''
         Open the Add Assignment menu if it is closed
         '''
-        assignment_menu = driver.find_element(
-            By.XPATH, '//button[contains(@class,"dropdown-toggle")]')
-        # if the Add Assignment menu is not open
-        if 'open' not in assignment_menu.find_element(By.XPATH, '..'). \
-                get_attribute('class'):
-            assignment_menu.click()
+        try:
+            assignment_menu = driver.find_element(
+                By.XPATH, '//button[contains(@class,"dropdown-toggle")]')
+            # if the Add Assignment menu is not open
+            if 'open' not in assignment_menu.find_element(By.XPATH, '..'). \
+                    get_attribute('class'):
+                assignment_menu.click()
+        except:
+            return
 
     def assign_periods(self, driver, periods):
         '''
@@ -241,17 +245,20 @@ class Assignment(object):
         # assign the same dates for all periods
         if 'all' in periods:
             opens_on, closes_on = periods['all']
-            driver.find_element(By.ID, 'hide-periods-radio').click()
-            driver.find_element(
-                By.XPATH,
-                '//div[contains(@class,"-assignment-open-date")]' +
-                '//input[@class="datepicker__input"]'). \
-                send_keys(opens_on)
-            driver.find_element(
-                By.XPATH,
-                '//div[contains(@class,"-assignment-due-date")]' +
-                '//input[@class="datepicker__input"]'). \
-                send_keys(closes_on)
+            time.sleep(1)
+            open_xpath = '//div[contains(@class,"-assignment-open-date")]' + \
+                         '//input[@class="datepicker__input"]'
+            close_xpath = '//div[contains(@class,"-assignment-due-date")]' + \
+                          '//input[@class="datepicker__input"]'
+            driver.find_element(By.XPATH, open_xpath).clear()
+            driver.find_element(By.XPATH, open_xpath).send_keys(opens_on)
+            time.sleep(1)
+            driver.find_element(By.CLASS_NAME, 'assign-to-label').click()
+            time.sleep(1)
+            driver.find_element(By.XPATH, close_xpath).clear()
+            driver.find_element(By.XPATH, close_xpath).send_keys(closes_on)
+            time.sleep(1)
+            driver.find_element(By.CLASS_NAME, 'assign-to-label').click()
             return
         # or set the dates for each period: {period: (open, close)}
         count = 0
@@ -327,6 +334,7 @@ class Assignment(object):
             else:  # select an individual section
                 print('Adding section: ' + section)
                 self.open_chapter_list(driver, section.split('.')[0])
+                time.sleep(0.5)
                 wait = WebDriverWait(driver, Assignment.WAIT_TIME)
                 marked = wait.until(
                     expect.visibility_of_element_located(
@@ -347,7 +355,7 @@ class Assignment(object):
         driver:      WebDriver - Selenium WebDriver instance
         title:       string    - assignment title
         description: string    - assignment description or additional
-                             instructions
+                                 instructions
         periods:     dict      - <key>:   string <period name> OR 'all'
                                  <value>: tuple  (<open date>, <close date>)
                                           date format is 'MM/DD/YYYY'
@@ -357,37 +365,52 @@ class Assignment(object):
         status:      string    - 'publish', 'cancel', or 'draft'
         '''
         self.open_assignment_menu(driver)
+        time.sleep(1)
         driver.find_element(By.LINK_TEXT, 'Add Reading').click()
+        time.sleep(1)
         wait = WebDriverWait(driver, Assignment.WAIT_TIME)
         wait.until(
             expect.visibility_of_element_located(
                 (By.CLASS_NAME, 'panel-body')
             )
         )
+        wait.until(
+            expect.element_to_be_clickable(
+                (By.ID, 'reading-title')
+            )
+        )
         driver.find_element(By.ID, 'reading-title').send_keys(title)
+        time.sleep(1)
         driver.find_element(
             By.XPATH,
             '//div[contains(@class,"assignment-description")]//textarea' +
             '[contains(@class,"form-control")]'). \
             send_keys(description)
+        time.sleep(1)
         self.assign_periods(driver, periods)
+        time.sleep(1)
         # add reading sections to the assignment
         driver.find_element(By.ID, 'reading-select').click()
+        time.sleep(1)
         wait.until(
             expect.visibility_of_element_located(
                 (By.XPATH, '//div[contains(@class,"select-reading-' +
                  'dialog")]')
             )
         )
+        time.sleep(1)
         self.select_sections(driver, readings)
+        time.sleep(1)
         driver.find_element(By.XPATH,
                             '//button[text()="Add Readings"]').click()
+        time.sleep(3)
         wait.until(
             expect.visibility_of_element_located(
                 (By.XPATH, '//span[text()="Publish"]')
             )
         )
         self.select_status(driver, status)
+        time.sleep(5)
 
     def add_new_homework(self, driver, title, description, periods, problems,
                          status):

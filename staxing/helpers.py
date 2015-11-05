@@ -100,13 +100,14 @@ class User(object):
         # open the URL
         driver.get(url_address)
         wait = WebDriverWait(driver, StaxHelper.WAIT_TIME)
-        site = wait.until(
-            expect.visibility_of_element_located(
-                (By.CLASS_NAME, 'navbar-brand')
-            )
-        )
-        if site is None:
-            raise LoginError('Unable to read from URL: %s' % url_address)
+        # try:
+        #     site = wait.until(
+        #         expect.visibility_of_element_located(
+        #             (By.CLASS_NAME, 'navbar-brand')
+        #         )
+        #     )
+        # except:
+        #     raise LoginError('Unable to read from URL: %s' % url_address)
         # if coming from Tutor, click on the login button
         if 'tutor' in url_address:
             # check to see if the screen width is normal or condensed
@@ -121,6 +122,16 @@ class User(object):
                 if('collapsed' in is_collapsed.get_attribute('class')):
                     is_collapsed.click()
             driver.find_element(By.LINK_TEXT, 'Login').click()
+        wait.until(
+            expect.presence_of_element_located(
+                (By.XPATH, '//html/body')
+            )
+        )
+        import re
+        src = driver.page_source
+        text_located = re.search(r'openstax', src.lower()) is not None
+        if not text_located:
+            raise LoginError('Non-OpenStax URL: %s' % driver.current_url)
         # enter the username and password
         driver.find_element(By.ID, 'auth_key'). \
             send_keys(self.name if username is None else username)
@@ -130,26 +141,18 @@ class User(object):
         driver.find_element(
             By.XPATH, '//button[text()="Sign in"]'
         ).click()
-        return (True, 'Log in successful')
 
     def logout(self, driver):
         '''
         Logout control
         '''
         url_address = driver.current_url
-
-        try:
-            if 'tutor' in url_address:
-                self.tutor_logout(driver)
-            elif 'accounts' in url_address:
-                self.accounts_logout(driver)
-            else:
-                raise HTTPError('Not an OpenStax URL')
-        except HTTPError as ex:
-            raise ex
-        except Exception as e:
-            return (False, 'Logout failed: %s - %s' % (str(e), e.value))
-        return (True, 'Logout successful')
+        if 'tutor' in url_address:
+            self.tutor_logout(driver)
+        elif 'accounts' in url_address:
+            self.accounts_logout(driver)
+        else:
+            raise HTTPError('Not an OpenStax URL')
 
     def open_user_menu(self, driver):
         '''
@@ -459,11 +462,11 @@ def main():
             'title': reading,
             'description': 'An auto-test assignment',
             'periods': {'all': (begin, end)},
-            'reading_list': ['4.0', '4.1', '4.2', 'ch5', '5.2'],
-            'status': 'draft',
+            'reading_list': ['4', '4.1', '4.2', 'ch5', '5.2'],
+            'status': 'publish',
         }
     )
-    homework = 'test-hw %s' % Assignment.rword(8)
+    a = '''homework = 'test-hw %s' % Assignment.rword(8)
     helper.teacher.add_assignment(
         driver=driver,
         assignment='homework',
@@ -471,14 +474,16 @@ def main():
             'title': homework,
             'description': 'An auto-test assignment',
             'periods': {'all': (begin, end)},
-            'problems': {'4.0': None,
+            'problems': {'4': None,
                          '4.1': (4, 8),
                          '4.2': 'all',
                          '4.3': ['2102@1', '2104@1', '2175'],
                          'ch5': 5,
                          'tutor': 4},
+            'status': 'draft',
         }
-    )
+    )'''
+    print(a not in 'awfa')
 
 if __name__ == "__main__":
     # execute only if run as a script
