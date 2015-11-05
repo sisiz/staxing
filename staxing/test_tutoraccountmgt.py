@@ -10,9 +10,9 @@ from selenium.webdriver.common.action_chains import ActionChains
 from pastasauce import PastaSauce, PastaDecorator
 from . import StaxHelper
 
-NOT_STARTED = True
-if NOT_STARTED:
-    import pytest
+# NOT_STARTED = True
+# if NOT_STARTED:
+#     import pytest
 
 browsers = [{
     "platform": "Windows 10",
@@ -408,7 +408,9 @@ class TestTutorAcctMgt(unittest.TestCase):
         assert(self.driver.current_url == full_url), 'Not at dashboard'
 
     def test_ost_logo_click_user_logged_in(self):
-        self.helper.user.login(self.driver, 'teacher01', 'password')
+        self.helper.user.login(self.driver,
+                               self.helper.teacher.name,
+                               self.helper.teacher.password)
         url = self.helper.user.url
         if url[-1:] == '/':
             url = url[:-1]
@@ -434,6 +436,139 @@ class TestTutorAcctMgt(unittest.TestCase):
         full_url = url + route
         assert(self.driver.current_url == full_url), 'Not at dashboard'
 
-    @pytest.mark.skipif(NOT_STARTED, reason='Not started')
     def test_user_updates_profile_information(self):
-        ''''''
+        self.helper.user.login(self.driver,
+                               self.helper.teacher.name,
+                               self.helper.teacher.password,
+                               'https://accounts-qa.openstax.org/')
+        heading = self.wait.until(
+            expect.visibility_of_element_located(
+                (By.ID, 'page-heading')
+            )
+        )
+        new_title = self.rword(3)
+        new_suffix = self.rword(2)
+        assert(heading.text == 'Your Account'), 'Not at the profile control'
+        # self.driver.find_element(By.ID, 'user_title').clear(). \
+        #     send_keys(new_title)
+        self.driver.find_element(By.ID, 'user_suffix').clear()
+        self.driver.find_element(By.ID, 'user_suffix'). \
+            send_keys(new_suffix)
+        self.driver.find_element(
+            By.XPATH, '//input[contains(@value,"Update Profile")]').click()
+        self.wait.until(
+            expect.visibility_of_element_located(
+                (By.XPATH, '//span[contains(@class,"ui-icon")]')
+            )
+        )
+        title = self.driver.find_element(By.ID, 'user_title')
+        assert(title.text == new_title), 'Change to the title failed'
+        suffix = self.driver.find_element(By.ID, 'user_suffix')
+        assert(suffix.text == new_suffix), 'Change to the suffix failed'
+
+    def test_user_email_management(self):
+        self.helper.user.login(self.driver,
+                               self.helper.teacher.name,
+                               self.helper.teacher.password,
+                               'https://accounts-qa.openstax.org/')
+        heading = self.wait.until(
+            expect.visibility_of_element_located(
+                (By.ID, 'page-heading')
+            )
+        )
+        assert(heading.text == 'Your Account'), 'Not at the profile control'
+        self.driver.find_element(By.LINK_TEXT, 'Manage Email Addresses'). \
+            click()
+        emails = self.driver.find_elements(By.XPATH,
+                                           '//tr/td[contains(text(),"@")]')
+        for email in emails:
+            if self.helper.email.email in email.text:
+                self.driver.find_element(
+                    By.XPATH,
+                    '//input[contains(@data-confirm,"%s")]' %
+                    self.helper.email.email
+                ).click()
+                self.driver.switch_to_alert().accept()
+        self.driver.find_element(By.ID, 'contact_info_value'). \
+            send_keys(self.helper.email.email)
+        self.driver.find_element(
+            By.XPATH, '//input[@value="Add Email address"]'
+        ).click()
+        self.driver.get('https://mail.google.com/')
+        assert('Gmail' in self.driver.title), 'Gmail login not available'
+        username = self.driver.find_element(By.ID, 'Email')
+        username.send_keys(self.helper.email.email)
+        next_button = self.driver.find_element(By.ID, 'next')
+        next_button.click()
+        password = self.driver.find_element(By.ID, 'Passwd')
+        password.send_keys(self.helper.email.password)
+        stay_signed_in = self.driver.find_element(By.ID, 'PersistentCookie')
+        if stay_signed_in.is_selected():
+            stay_signed_in.click()
+        next_button = self.driver.find_element(By.ID, 'signIn')
+        next_button.click()
+        try:
+            email_confirm = self.wait.until(
+                expect.visibility_of_element_located(
+                    (By.CLASS_NAME, 'y6')
+                )
+            )
+        except:
+            assert(False), 'Email message not received'
+        email_confirm.click()
+        try:
+            reset_link = self.wait.until(
+                expect.presence_of_element_located(
+                    (By.XPATH, '//a[contains(@href, "accounts-qa")]')
+                )
+            )
+        except:
+            assert(False), 'Wrong e-mail message selected'
+        link = reset_link.get_attribute('href')
+        self.driver.find_element(
+            By.XPATH,
+            '//a[@title="Gmail" and contains(@href,"inbox")]'
+        ).click()
+        email_confirm = self.wait.until(
+            expect.visibility_of_element_located(
+                (By.CLASS_NAME, 'y6')
+            )
+        )
+        trash_can = self.driver.find_element(By.LINK_TEXT, 'Trash')
+        chain = ActionChains(self.driver). \
+            move_to_element(email_confirm). \
+            drag_and_drop(email_confirm, trash_can)
+        chain.perform()
+        self.driver.close()
+        self.driver = StaxHelper.run_on(
+            StaxHelper.LOCAL, self.ps, self.desired_capabilities
+        )
+        self.driver.implicitly_wait(15)
+        self.driver.set_window_size(*standard_window)
+        self.wait = WebDriverWait(self.driver, 15)
+        self.driver.get(link)
+        heading = self.wait.until(
+            expect.visibility_of_element_located(
+                (By.ID, 'page-heading')
+            )
+        )
+        assert('Verification' in heading.text), 'Email not verified'
+        self.driver.find_element(By.XPATH,
+                                 '//*[@id="top-nav-account"]/a[1]').click()
+        # self.driver.find_element(By.LINK_TEXT, self.helper.teacher.name). \
+        #     click()
+        heading = self.wait.until(
+            expect.visibility_of_element_located(
+                (By.ID, 'page-heading')
+            )
+        )
+        assert(heading.text == 'Your Account'), 'Not at the profile control'
+        self.driver.find_element(By.LINK_TEXT, 'Manage Email Addresses'). \
+            click()
+        try:
+            self.driver.find_element(
+                By.XPATH,
+                '//tr/td[contains(text(),"%s")]' % self.helper.email.email
+            )
+        except:
+            assert(False), 'Email not found in verified list'
