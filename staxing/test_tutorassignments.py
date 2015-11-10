@@ -1,5 +1,6 @@
 import unittest
 import sys
+import datetime
 
 # from selenium.webdriver.common.by import By
 # from selenium.webdriver.common.keys import Keys
@@ -68,9 +69,17 @@ class TestTutorAssignments(unittest.TestCase):
         self.helper.user.login(self.driver, teacher, teacher_password,
                                self.helper.user.url)
         self.helper.user.select_course(self.driver, category='Physics')
+        self.screenshot_path = '~/Desktop/ScreenshotErrors'
 
     def tearDown(self):
-        ''''''
+        if sys.exc_info()[0]:  # Returns the info of exception being handled
+            fail_url = self.driver.current_url
+            print(fail_url)
+            now = 'testerr_' + datetime.now().strftime('%Y-%m-%d_%H-%M-%S-%f')
+            self.driver.get_screenshot_as_file(
+                self.screenshot_path +
+                '' if self.screenshot_path[-1:] == '/' else '/' +
+                '%s.png' % now)
         self.driver.quit()
         status = (sys.exc_info() == (None, None, None))
         self.ps.update_job(self.driver.session_id, passed=status)

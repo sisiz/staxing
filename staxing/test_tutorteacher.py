@@ -1,11 +1,11 @@
 import unittest
 import sys
+import datetime
 
 from selenium.webdriver.common.by import By
 # from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as expect
 from selenium.webdriver.support.ui import WebDriverWait
-import datetime
 
 from pastasauce import PastaSauce, PastaDecorator
 from . import StaxHelper
@@ -68,11 +68,19 @@ class TestTutorTeacher(unittest.TestCase):
         self.helper.user.login(self.driver, teacher, teacher_password,
                                self.helper.user.url)
         self.helper.user.select_course(self.driver, category='Physics')
+        self.screenshot_path = '~/Desktop/ScreenshotErrors'
 
         # # # TODO: setup test assignments # # #
 
     def tearDown(self):
-        ''''''
+        if sys.exc_info()[0]:  # Returns the info of exception being handled
+            fail_url = self.driver.current_url
+            print(fail_url)
+            now = 'testerr_' + datetime.now().strftime('%Y-%m-%d_%H-%M-%S-%f')
+            self.driver.get_screenshot_as_file(
+                self.screenshot_path +
+                '' if self.screenshot_path[-1:] == '/' else '/' +
+                '%s.png' % now)
         self.driver.quit()
         status = (sys.exc_info() == (None, None, None))
         self.ps.update_job(self.driver.session_id, passed=status)
@@ -93,6 +101,13 @@ class TestTutorTeacher(unittest.TestCase):
     @pytest.mark.skipif(NOT_STARTED, reason='Not started')
     def test_teacher_views_student_scores(self):
         ''''''
+        # login teacher
+        self.helper.user.login(self.driver,
+                               self.helper.user.name,
+                               self.helper.user.password,
+                               self.helper.user.url)
+        # click on student scores
+        self.helper.teacher.goto_student_scores(self.driver)
 
     @pytest.mark.skipif(NOT_STARTED, reason='Not started')
     def test_teacher_views_reference_book(self):

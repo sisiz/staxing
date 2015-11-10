@@ -1,10 +1,11 @@
 import random
 import string
 import time
+
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support import expected_conditions as expect
 from selenium.webdriver.support.ui import WebDriverWait
-# from datetime import date
 
 
 class Assignment(object):
@@ -224,6 +225,14 @@ class Assignment(object):
         return ''.join(random.choice(string.ascii_lowercase)
                        for i in range(length))
 
+    @classmethod
+    def scroll_to(cls, driver, element):
+        '''
+        Execute a scroll until in view javascript
+        '''
+        driver.execute_script('return arguments[0].scrollIntoView();', element)
+        driver.execute_script('window.scrollBy(0, -80);')
+
     def open_assignment_menu(self, driver):
         '''
         Open the Add Assignment menu if it is closed
@@ -245,19 +254,17 @@ class Assignment(object):
         # assign the same dates for all periods
         if 'all' in periods:
             opens_on, closes_on = periods['all']
-            time.sleep(1)
             open_xpath = '//div[contains(@class,"-assignment-open-date")]' + \
                          '//input[@class="datepicker__input"]'
             close_xpath = '//div[contains(@class,"-assignment-due-date")]' + \
                           '//input[@class="datepicker__input"]'
             driver.find_element(By.XPATH, open_xpath).clear()
             driver.find_element(By.XPATH, open_xpath).send_keys(opens_on)
-            time.sleep(1)
+            time.sleep(0.5)
             driver.find_element(By.CLASS_NAME, 'assign-to-label').click()
-            time.sleep(1)
             driver.find_element(By.XPATH, close_xpath).clear()
             driver.find_element(By.XPATH, close_xpath).send_keys(closes_on)
-            time.sleep(1)
+            time.sleep(0.5)
             driver.find_element(By.CLASS_NAME, 'assign-to-label').click()
             return
         # or set the dates for each period: {period: (open, close)}
@@ -276,29 +283,41 @@ class Assignment(object):
                     '/../following-sibling::div' +
                     '//input[contains(@class,"picker")]'). \
                     send_keys(opens_on)
+                time.sleep(0.5)
+                driver.find_element(By.CLASS_NAME, 'assign-to-label').click()
                 driver.find_element(
                     By.XPATH,
                     '//input[@id="period-toggle-%s"]' % count +
                     '/../following-sibling::div/following-sibling::div' +
                     '//input[contains(@class,"picker")]'). \
                     send_keys(closes_on)
+                time.sleep(0.5)
+                driver.find_element(By.CLASS_NAME, 'assign-to-label').click()
 
     def select_status(self, driver, status):
         if status is self.PUBLISH:
+            print('Publishing...')
+            element = driver.find_element(By.CLASS_NAME, 'close-x')
+            Assignment.scroll_to(driver, element)
+            time.sleep(1)
             driver.find_element(
-                By.XPATH,
-                '//button[contains(@class,"-publish")]'). \
-                click()
+                By.XPATH, '//button[contains(@class,"-publish")]').click()
         elif status is self.DRAFT:
-            driver.find_element(
-                By.XPATH,
-                '//button[contains(@class," -save")]'). \
-                click()
+            print('Saving draft')
+            element = driver.find_element(By.CLASS_NAME, 'close-x')
+            Assignment.scroll_to(driver, element)
+            time.sleep(1)
+            element = driver.find_element(
+                By.XPATH, '//button[contains(@class," -save")]').click()
         else:
-            driver.find_element(
+            print('Canceling assignment')
+            element = driver.find_element(By.CLASS_NAME, 'close-x')
+            Assignment.scroll_to(driver, element)
+            time.sleep(1)
+            element = driver.find_element(
                 By.XPATH,
-                '//button[contains(@aria-role,"close"'). \
-                click()
+                '//button[contains(@aria-role,"close") and @type="button"]'
+            ).click()
             wait = WebDriverWait(driver, Assignment.WAIT_TIME)
             wait.until(
                 expect.visibility_of_element_located(
@@ -322,15 +341,18 @@ class Assignment(object):
         Select the sections and chapters
         '''
         for section in chapters:
-            if "ch" in section:  # select the whole chapter
+            if 'ch' in section:  # select the whole chapter
                 print('Adding chapter: ' + section)
                 chapter = driver.find_element(
                     By.XPATH,
                     '//h2[@data-chapter-section="%s"]' % section[2:] +
                     '//input[contains(@id,"chapter-checkbox-")]'
                 )
+                time.sleep(0.5)
                 if not chapter.is_selected():
                     chapter.click()
+            elif 'tutor' in section:
+                continue
             else:  # select an individual section
                 print('Adding section: ' + section)
                 self.open_chapter_list(driver, section.split('.')[0])
@@ -364,53 +386,213 @@ class Assignment(object):
                                  'ch'
         status:      string    - 'publish', 'cancel', or 'draft'
         '''
+        print('Creating a new Reading')
         self.open_assignment_menu(driver)
-        time.sleep(1)
         driver.find_element(By.LINK_TEXT, 'Add Reading').click()
         time.sleep(1)
         wait = WebDriverWait(driver, Assignment.WAIT_TIME)
-        wait.until(
-            expect.visibility_of_element_located(
-                (By.CLASS_NAME, 'panel-body')
-            )
-        )
         wait.until(
             expect.element_to_be_clickable(
                 (By.ID, 'reading-title')
             )
         )
         driver.find_element(By.ID, 'reading-title').send_keys(title)
-        time.sleep(1)
         driver.find_element(
             By.XPATH,
             '//div[contains(@class,"assignment-description")]//textarea' +
             '[contains(@class,"form-control")]'). \
             send_keys(description)
-        time.sleep(1)
         self.assign_periods(driver, periods)
-        time.sleep(1)
         # add reading sections to the assignment
         driver.find_element(By.ID, 'reading-select').click()
-        time.sleep(1)
         wait.until(
             expect.visibility_of_element_located(
                 (By.XPATH, '//div[contains(@class,"select-reading-' +
                  'dialog")]')
             )
         )
-        time.sleep(1)
         self.select_sections(driver, readings)
-        time.sleep(1)
         driver.find_element(By.XPATH,
                             '//button[text()="Add Readings"]').click()
-        time.sleep(3)
         wait.until(
             expect.visibility_of_element_located(
                 (By.XPATH, '//span[text()="Publish"]')
             )
         )
         self.select_status(driver, status)
-        time.sleep(5)
+
+    def find_all_questions(self, driver, problems):
+        ''''''
+        # print('Problems: ', problems)
+        questions = {}
+        section = ''
+        wait = WebDriverWait(driver, 5)
+        try:
+            loading = wait.until(
+                expect.visibility_of_element_located(
+                    (By.XPATH, '//span[text()="Loading..."]')
+                )
+            )
+            wait.until(expect.staleness_of(loading))
+        except:
+            pass
+        rows = driver.find_elements(
+            By.XPATH,
+            '//div[contains(@class,"add-exercise-list")]/*[@class="row"]')
+        # print('FAQ - Row count: %s\n%s' % (len(rows), rows))
+        for row in rows:
+            children = row.find_elements(By.XPATH, './*')
+            if len(children) == 0:
+                # print('FAQ - No children tags')
+                continue
+            elif len(children) == 1:
+                try:
+                    section = children[0].find_element(
+                        By.XPATH,
+                        './/span[@class="chapter-section"]').text
+                    questions[section] = []
+                    # print('FAQ - Section tag: %s' % section)
+                except:
+                    question = children[0].find_element(
+                        By.XPATH,
+                        './/span[contains(text(),"@")]').text
+                    question = question.split(' ')[1]
+                    questions[section].append(question)
+                    # print('FAQ - Exercise tag: %s' % question)
+            else:
+                question = children[0].find_element(
+                    By.XPATH,
+                    './/span[contains(text(),"@")]').text
+                question = question.split(' ')[1]
+                questions[section].append(question)
+                # print('FAQ - Exercise tag: %s' % question)
+                try:
+                    question = children[1].find_element(
+                        By.XPATH,
+                        './/span[contains(text(),"@")]').text
+                    question = question.split(' ')[1]
+                    questions[section].append(question)
+                    # print('FAQ - Exercise tag: %s' % question)
+                except:
+                    pass
+        return questions
+
+    def get_chapter_list(self, problems, chapter_id):
+        available = []
+        chapter = int(chapter_id[2:])
+        for section in problems:
+            if int(section.split('.')[0]) == chapter:
+                for i in range(len(problems[section])):
+                    available.append(problems[section][i])
+        return available
+
+    def set_tutor_selections(self, driver, problems):
+        tutor_picks = driver.find_element(
+            By.XPATH, '//div[@class="tutor-selections"]//h2')
+        current = int(tutor_picks.text)
+        change = int(problems['tutor']) - current
+        if change != 0:
+            increase = driver.find_element(
+                By.XPATH,
+                '//div[@class="tutor-selections"]' +
+                '//button[contains(@class,"-move-exercise-down")]'
+            )
+            decrease = driver.find_element(
+                By.XPATH,
+                '//div[@class="tutor-selections"]' +
+                '//button[contains(@class,"-move-exercise-up")]'
+            )
+            while change < 0:
+                change += 1
+                increase.click()
+            while change > 0:
+                change -= 1
+                decrease.click()
+
+    def add_homework_problems(self, driver, problems):
+        ''''''
+        wait = WebDriverWait(driver, Assignment.WAIT_TIME)
+        driver.find_element(By.ID, 'problems-select').click()
+        wait.until(
+            expect.visibility_of_element_located(
+                (By.XPATH, '//span[text()="Add Problems"]')
+            )
+        )
+        self.select_sections(driver, list(problems.keys()))
+        driver.execute_script(
+            "window.scrollTo(0, document.body.scrollHeight);"
+        )
+        driver.find_element(
+            By.XPATH, '//button[contains(@class,"-show-problems")]'
+        ).click()
+        all_available = self.find_all_questions(driver, problems)
+        using = []
+        # print('AHP - Selection list: %s' % selections)
+        for section in problems:
+            if problems is None or str(problems).lower() == 'none':
+                print('%s: No exercises (%s)' % (section, problems[section]))
+                continue
+            # Set maximum Tutor-selected problems
+            if section == 'tutor':
+                print('Using %s Tutor selections' % problems[section])
+                self.set_tutor_selections(driver, problems)
+            # Select all exercises in the section
+            elif problems[section] == 'all':
+                print('Selecting all from %s' % section)
+                available = self.get_chapter_list(all_available, section) if \
+                    'ch' in section else all_available[section]
+                for ex in available:
+                    using.append(ex)
+            # Select between X and Y exercises, inclusive, from the section
+            elif type(problems[section]) == tuple:
+                low, high = problems[section]
+                total = random.randint(int(low), int(high))
+                print('Selecting %s random from %s (%s to %s)' %
+                      (total, section, low, high))
+                available = self.get_chapter_list(all_available, section) if \
+                    'ch' in section else all_available[section]
+                for i in range(total):
+                    ex = random.randint(0, len(available) - 1)
+                    using.append(available[ex])
+                    available.remove(available[ex])
+            # Select the first X exercises from the section
+            elif type(problems[section]) == int:
+                print('Selecting first %s from %s' %
+                      (problems[section], section))
+                available = self.get_chapter_list(all_available, section) if \
+                    'ch' in section else all_available[section]
+                for position in range(problems[section]):
+                    using.append(available[position])
+            elif problems[section] is list:
+                print('Adding %s custom if available' % len(problems[section]))
+                for ex in problems[section]:
+                    for section in all_available:
+                        if ex in all_available[section]:
+                            using.append(ex)
+        for exercise in set(using):
+            ac = ActionChains(driver)
+            time.sleep(0.5)
+            ac.move_to_element(
+                driver.find_element(
+                    By.XPATH,
+                    '//span[contains(@data-reactid,"%s")]' % exercise
+                )
+            )
+            ac.move_by_offset(0, -80)
+            ac.click()
+            ac.perform()
+        ActionChains(driver). \
+            move_to_element(
+                driver.find_element(
+                    By.XPATH, '//span[text()="Tutor Selections"]'
+                )). \
+            move_by_offset(0, -80). \
+            perform()
+        wait.until(
+            expect.visibility_of_element_located(
+                (By.XPATH, '//*[text()="Next"]')
+            )
+        ).click()
 
     def add_new_homework(self, driver, title, description, periods, problems,
                          status):
@@ -436,6 +618,7 @@ class Assignment(object):
                                               default: 3
         status:      string    - 'publish', 'cancel', or 'draft'
         '''
+        print('Creating a new Homework')
         self.open_assignment_menu(driver)
         driver.find_element(By.LINK_TEXT, 'Add Homework').click()
         wait = WebDriverWait(driver, Assignment.WAIT_TIME)
@@ -451,40 +634,7 @@ class Assignment(object):
             '//textarea[contains(@class,"form-control")]'). \
             send_keys(description)
         self.assign_periods(driver, periods)
-        driver.find_element(By.ID, 'problems-select').click()
-        wait.until(
-            expect.visibility_of_element_located(
-                (By.XPATH, '//span[text()="Add Problems"]')
-            )
-        )
-        self.select_sections(driver, problems)
-        driver.find_element(By.XPATH, '//button[text()="Show Problms"]'). \
-            click()
-        for section in problems:
-            if section is 'tutor':
-                tutor_picks = driver.find_element(
-                    By.XPATH, '//div[@class="tutor-selections"]//h2')
-                current = int(tutor_picks.text)
-                change = current - problems[section]
-                if change != 0:
-                    increase = driver.find_element(
-                        By.XPATH,
-                        '//div[@class="tutor-selections"]' +
-                        '//button[contains(@class,"-move-exercise-down")]'
-                    )
-                    decrease = driver.find_element(
-                        By.XPATH,
-                        '//div[@class="tutor-selections"]' +
-                        '//button[contains(@class,"-move-exercise-up")]'
-                    )
-                    while change < 0:
-                        change += 1
-                        increase.click()
-                    while change > 0:
-                        change -= 1
-                        decrease.click()
-            # elif
-        # #####
+        self.add_homework_problems(driver, problems)
         self.select_status(driver, status)
 
     def add_new_external(self, driver, title, description, periods,

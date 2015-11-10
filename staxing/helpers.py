@@ -100,15 +100,6 @@ class User(object):
         # open the URL
         driver.get(url_address)
         wait = WebDriverWait(driver, StaxHelper.WAIT_TIME)
-        # try:
-        #     site = wait.until(
-        #         expect.visibility_of_element_located(
-        #             (By.CLASS_NAME, 'navbar-brand')
-        #         )
-        #     )
-        # except:
-        #     raise LoginError('Unable to read from URL: %s' % url_address)
-        # if coming from Tutor, click on the login button
         if 'tutor' in url_address:
             # check to see if the screen width is normal or condensed
             if driver.get_window_size()['width'] <= \
@@ -454,19 +445,19 @@ def main():
     # start the code example
     helper.user.login(driver)
     helper.user.select_course(driver, category='biology')
-    reading = 'test-read %s' % Assignment.rword(8)
-    helper.teacher.add_assignment(
-        driver=driver,
-        assignment='reading',
-        args={
-            'title': reading,
-            'description': 'An auto-test assignment',
-            'periods': {'all': (begin, end)},
-            'reading_list': ['4', '4.1', '4.2', 'ch5', '5.2'],
-            'status': 'publish',
-        }
-    )
-    a = '''homework = 'test-hw %s' % Assignment.rword(8)
+    # reading = 'test-read %s' % Assignment.rword(8)
+    # elper.teacher.add_assignment(
+    #    driver=driver,
+    #    assignment='reading',
+    #    args={
+    #        'title': reading,
+    #        'description': 'An auto-test assignment',
+    #        'periods': {'all': (begin, end)},
+    #        'reading_list': ['4', '4.1', '4.2', 'ch5', '5.2'],
+    #        'status': 'publish',
+    #    }
+    # )
+    homework = 'test-hw %s' % Assignment.rword(8)
     helper.teacher.add_assignment(
         driver=driver,
         assignment='homework',
@@ -482,8 +473,7 @@ def main():
                          'tutor': 4},
             'status': 'draft',
         }
-    )'''
-    print(a not in 'awfa')
+    )
 
 if __name__ == "__main__":
     # execute only if run as a script

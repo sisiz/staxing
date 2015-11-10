@@ -1,5 +1,6 @@
 import unittest
 import sys
+import datetime
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -64,8 +65,17 @@ class TestTutorAcctMgt(unittest.TestCase):
         self.wait = WebDriverWait(self.driver, 15)
         self.driver.set_window_size(*standard_window)
         self.rword = self.helper.user.assignment.rword
+        self.screenshot_path = '~/Desktop/ScreenshotErrors'
 
     def tearDown(self):
+        if sys.exc_info()[0]:  # Returns the info of exception being handled
+            fail_url = self.driver.current_url
+            print(fail_url)
+            now = 'testerr_' + datetime.now().strftime('%Y-%m-%d_%H-%M-%S-%f')
+            self.driver.get_screenshot_as_file(
+                self.screenshot_path +
+                '' if self.screenshot_path[-1:] == '/' else '/' +
+                '%s.png' % now)
         self.driver.quit()
         status = (sys.exc_info() == (None, None, None))
         self.ps.update_job(self.driver.session_id, passed=status)
@@ -449,8 +459,9 @@ class TestTutorAcctMgt(unittest.TestCase):
         new_title = self.rword(3)
         new_suffix = self.rword(2)
         assert(heading.text == 'Your Account'), 'Not at the profile control'
-        # self.driver.find_element(By.ID, 'user_title').clear(). \
-        #     send_keys(new_title)
+        self.driver.find_element(By.ID, 'user_title').clear()
+        self.driver.find_element(By.ID, 'user_title'). \
+            send_keys(new_title)
         self.driver.find_element(By.ID, 'user_suffix').clear()
         self.driver.find_element(By.ID, 'user_suffix'). \
             send_keys(new_suffix)
@@ -462,9 +473,11 @@ class TestTutorAcctMgt(unittest.TestCase):
             )
         )
         title = self.driver.find_element(By.ID, 'user_title')
-        assert(title.text == new_title), 'Change to the title failed'
+        assert(title.get_attribute('value') == new_title), \
+            'Change to the title failed'
         suffix = self.driver.find_element(By.ID, 'user_suffix')
-        assert(suffix.text == new_suffix), 'Change to the suffix failed'
+        assert(suffix.get_attribute('value') == new_suffix), \
+            'Change to the suffix failed'
 
     def test_user_email_management(self):
         self.helper.user.login(self.driver,
@@ -477,25 +490,32 @@ class TestTutorAcctMgt(unittest.TestCase):
             )
         )
         assert(heading.text == 'Your Account'), 'Not at the profile control'
+        print('At Account control')
         self.driver.find_element(By.LINK_TEXT, 'Manage Email Addresses'). \
             click()
+        print('Retrieve e-mails')
         emails = self.driver.find_elements(By.XPATH,
                                            '//tr/td[contains(text(),"@")]')
         for email in emails:
+            print(email.text)
             if self.helper.email.email in email.text:
+                print('Removing current e-mail to rerun the test')
                 self.driver.find_element(
                     By.XPATH,
                     '//input[contains(@data-confirm,"%s")]' %
                     self.helper.email.email
                 ).click()
                 self.driver.switch_to_alert().accept()
+                print('E-mail cleared')
         self.driver.find_element(By.ID, 'contact_info_value'). \
             send_keys(self.helper.email.email)
         self.driver.find_element(
             By.XPATH, '//input[@value="Add Email address"]'
         ).click()
+        print('Adding e-mail address')
         self.driver.get('https://mail.google.com/')
         assert('Gmail' in self.driver.title), 'Gmail login not available'
+        print('Opening Gmail for confirmation e-mail')
         username = self.driver.find_element(By.ID, 'Email')
         username.send_keys(self.helper.email.email)
         next_button = self.driver.find_element(By.ID, 'next')
@@ -507,6 +527,7 @@ class TestTutorAcctMgt(unittest.TestCase):
             stay_signed_in.click()
         next_button = self.driver.find_element(By.ID, 'signIn')
         next_button.click()
+        print('Signing in to Gmail')
         try:
             email_confirm = self.wait.until(
                 expect.visibility_of_element_located(
@@ -515,30 +536,19 @@ class TestTutorAcctMgt(unittest.TestCase):
             )
         except:
             assert(False), 'Email message not received'
-        email_confirm.click()
+        finally:
+            email_confirm.click()
+        print('Opening message')
         try:
-            reset_link = self.wait.until(
+            confirmation = self.wait.until(
                 expect.presence_of_element_located(
                     (By.XPATH, '//a[contains(@href, "accounts-qa")]')
                 )
             )
         except:
             assert(False), 'Wrong e-mail message selected'
-        link = reset_link.get_attribute('href')
-        self.driver.find_element(
-            By.XPATH,
-            '//a[@title="Gmail" and contains(@href,"inbox")]'
-        ).click()
-        email_confirm = self.wait.until(
-            expect.visibility_of_element_located(
-                (By.CLASS_NAME, 'y6')
-            )
-        )
-        trash_can = self.driver.find_element(By.LINK_TEXT, 'Trash')
-        chain = ActionChains(self.driver). \
-            move_to_element(email_confirm). \
-            drag_and_drop(email_confirm, trash_can)
-        chain.perform()
+        link = confirmation.get_attribute('href')
+        print('Save the confirmation URL')
         self.driver.close()
         self.driver = StaxHelper.run_on(
             StaxHelper.LOCAL, self.ps, self.desired_capabilities
@@ -547,28 +557,25 @@ class TestTutorAcctMgt(unittest.TestCase):
         self.driver.set_window_size(*standard_window)
         self.wait = WebDriverWait(self.driver, 15)
         self.driver.get(link)
+        print('Open the confirmation URL')
         heading = self.wait.until(
             expect.visibility_of_element_located(
                 (By.ID, 'page-heading')
             )
         )
         assert('Verification' in heading.text), 'Email not verified'
-        self.driver.find_element(By.XPATH,
-                                 '//*[@id="top-nav-account"]/a[1]').click()
-        # self.driver.find_element(By.LINK_TEXT, self.helper.teacher.name). \
-        #     click()
-        heading = self.wait.until(
+        print('E-mail verified')
+        self.helper.user.login(self.driver,
+                               self.helper.teacher.name,
+                               self.helper.teacher.password,
+                               'https://accounts-qa.openstax.org/')
+        self.wait.until(
             expect.visibility_of_element_located(
-                (By.ID, 'page-heading')
+                (By.LINK_TEXT, 'Manage Email Addresses')
             )
-        )
-        assert(heading.text == 'Your Account'), 'Not at the profile control'
-        self.driver.find_element(By.LINK_TEXT, 'Manage Email Addresses'). \
-            click()
+        ).click()
         try:
-            self.driver.find_element(
-                By.XPATH,
-                '//tr/td[contains(text(),"%s")]' % self.helper.email.email
-            )
+            email = self.driver.find_elements(By.XPATH,
+                                              '//td[contains(text(),"@")]')
         except:
             assert(False), 'Email not found in verified list'
