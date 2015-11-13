@@ -1,4 +1,6 @@
 import os
+import datetime
+import inspect
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as expect
@@ -44,6 +46,13 @@ class StaxHelper(object):
                 desired_capabilities=capabilities
             )
         return webdriver.Chrome()  # test locally with ChromeDriver
+
+    @classmethod
+    def date_string(cls, day_delta=0, str_format='%m/%d/%Y', today=False):
+        if today:
+            return datetime.date.today()
+        return (datetime.date.today() + datetime.timedelta(days=day_delta)). \
+            strftime(str_format)
 
 
 class User(object):
@@ -346,7 +355,7 @@ class Student(object):
 
         ToDo: all
         '''
-        raise NotImplementedError
+        raise NotImplementedError(inspect.currentframe().f_code.co_name)
 
     def goto_past_work(self):
         '''
@@ -354,7 +363,7 @@ class Student(object):
 
         ToDo: all
         '''
-        raise NotImplementedError
+        raise NotImplementedError(inspect.currentframe().f_code.co_name)
 
     def goto_performance_forecast(self):
         '''
@@ -362,7 +371,7 @@ class Student(object):
 
         ToDo: all
         '''
-        raise NotImplementedError
+        raise NotImplementedError(inspect.currentframe().f_code.co_name)
 
     def practice(self):
         '''
@@ -370,7 +379,7 @@ class Student(object):
 
         ToDo: all
         '''
-        raise NotImplementedError
+        raise NotImplementedError(inspect.currentframe().f_code.co_name)
 
 
 class Admin(object):
@@ -392,7 +401,7 @@ class Admin(object):
 
         ToDo: all
         '''
-        raise NotImplementedError
+        raise NotImplementedError(inspect.currentframe().f_code.co_name)
 
     def goto_courses(self):
         '''
@@ -400,7 +409,7 @@ class Admin(object):
 
         ToDo: all
         '''
-        raise NotImplementedError
+        raise NotImplementedError(inspect.currentframe().f_code.co_name)
 
     def goto_ecosystems(self):
         '''
@@ -408,7 +417,7 @@ class Admin(object):
 
         ToDo: all
         '''
-        raise NotImplementedError
+        raise NotImplementedError(inspect.currentframe().f_code.co_name)
 
 
 class Email(object):
@@ -436,7 +445,6 @@ class LoginError(Exception):
 
 
 def main():
-    import datetime
     today = datetime.date.today()
     begin = (today + datetime.timedelta(days=3)).strftime('%m/%d/%Y')
     end = (today + datetime.timedelta(days=6)).strftime('%m/%d/%Y')

@@ -1,7 +1,7 @@
 import random
 import string
 import time
-
+import inspect
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support import expected_conditions as expect
@@ -18,6 +18,14 @@ class Assignment(object):
     EVENT = 'event'
     REVIEW = 'review'
 
+    BEFORE_TITLE = 'title'
+    BEFORE_DESCRIPTION = 'description'
+    BEFORE_PERIOD = 'period'
+    BEFORE_SECTION_SELECT = 'section'
+    BEFORE_READING_SELECT = 'reading'
+    BEFORE_EXERCISE_SELECT = 'exercise'
+    BEFORE_STATUS_SELECT = 'status'
+
     WAIT_TIME = 15
 
     TUTOR_SELECTIONS = 'tutor'
@@ -25,6 +33,7 @@ class Assignment(object):
     PUBLISH = 'publish'
     CANCEL = 'cancel'
     DRAFT = 'draft'
+    DELETE = 'delete'
 
     def __init__(self):
         '''
@@ -95,8 +104,8 @@ class Assignment(object):
         self.edit = {
             Assignment.READING:
             (
-                lambda driver, name, description, periods, reading_list, state,
-                problems, url:
+                lambda driver, name, description='', periods={},
+                reading_list={}, state=Assignment.DRAFT, problems=None, url='':
                 self.change_reading(
                     driver=driver,
                     title=name,
@@ -258,12 +267,12 @@ class Assignment(object):
                          '//input[@class="datepicker__input"]'
             close_xpath = '//div[contains(@class,"-assignment-due-date")]' + \
                           '//input[@class="datepicker__input"]'
-            driver.find_element(By.XPATH, open_xpath).clear()
-            driver.find_element(By.XPATH, open_xpath).send_keys(opens_on)
-            time.sleep(0.5)
-            driver.find_element(By.CLASS_NAME, 'assign-to-label').click()
             driver.find_element(By.XPATH, close_xpath).clear()
             driver.find_element(By.XPATH, close_xpath).send_keys(closes_on)
+            time.sleep(0.5)
+            driver.find_element(By.CLASS_NAME, 'assign-to-label').click()
+            driver.find_element(By.XPATH, open_xpath).clear()
+            driver.find_element(By.XPATH, open_xpath).send_keys(opens_on)
             time.sleep(0.5)
             driver.find_element(By.CLASS_NAME, 'assign-to-label').click()
             return
@@ -280,36 +289,36 @@ class Assignment(object):
                 driver.find_element(
                     By.XPATH,
                     '//input[@id="period-toggle-%s"]' % count +
-                    '/../following-sibling::div' +
-                    '//input[contains(@class,"picker")]'). \
-                    send_keys(opens_on)
-                time.sleep(0.5)
-                driver.find_element(By.CLASS_NAME, 'assign-to-label').click()
-                driver.find_element(
-                    By.XPATH,
-                    '//input[@id="period-toggle-%s"]' % count +
                     '/../following-sibling::div/following-sibling::div' +
                     '//input[contains(@class,"picker")]'). \
                     send_keys(closes_on)
                 time.sleep(0.5)
                 driver.find_element(By.CLASS_NAME, 'assign-to-label').click()
+                driver.find_element(
+                    By.XPATH,
+                    '//input[@id="period-toggle-%s"]' % count +
+                    '/../following-sibling::div' +
+                    '//input[contains(@class,"picker")]'). \
+                    send_keys(opens_on)
+                time.sleep(0.5)
+                driver.find_element(By.CLASS_NAME, 'assign-to-label').click()
 
     def select_status(self, driver, status):
-        if status is self.PUBLISH:
+        if status == self.PUBLISH:
             print('Publishing...')
             element = driver.find_element(By.CLASS_NAME, 'close-x')
             Assignment.scroll_to(driver, element)
             time.sleep(1)
             driver.find_element(
                 By.XPATH, '//button[contains(@class,"-publish")]').click()
-        elif status is self.DRAFT:
+        elif status == self.DRAFT:
             print('Saving draft')
             element = driver.find_element(By.CLASS_NAME, 'close-x')
             Assignment.scroll_to(driver, element)
             time.sleep(1)
             element = driver.find_element(
                 By.XPATH, '//button[contains(@class," -save")]').click()
-        else:
+        elif status == self.CANCEL:
             print('Canceling assignment')
             element = driver.find_element(By.CLASS_NAME, 'close-x')
             Assignment.scroll_to(driver, element)
@@ -317,6 +326,21 @@ class Assignment(object):
             element = driver.find_element(
                 By.XPATH,
                 '//button[contains(@aria-role,"close") and @type="button"]'
+            ).click()
+            wait = WebDriverWait(driver, Assignment.WAIT_TIME)
+            wait.until(
+                expect.visibility_of_element_located(
+                    (By.XPATH, '//button[contains(@class,"ok")]')
+                )
+            ).click()
+        elif status == self.DELETE:
+            print('Deleting assignment')
+            element = driver.find_element(By.CLASS_NAME, 'close-x')
+            Assignment.scroll_to(driver, element)
+            time.sleep(1)
+            element = driver.find_element(
+                By.XPATH,
+                '//span[contains(text(),"Delete")]/..'
             ).click()
             wait = WebDriverWait(driver, Assignment.WAIT_TIME)
             wait.until(
@@ -370,7 +394,7 @@ class Assignment(object):
                     marked.click()
 
     def add_new_reading(self, driver, title, description, periods, readings,
-                        status):
+                        status, break_point=None):
         '''
         Add a new reading assignment
 
@@ -396,12 +420,18 @@ class Assignment(object):
                 (By.ID, 'reading-title')
             )
         )
+        if break_point == Assignment.BEFORE_TITLE:
+            return
         driver.find_element(By.ID, 'reading-title').send_keys(title)
+        if break_point == Assignment.BEFORE_DESCRIPTION:
+            return
         driver.find_element(
             By.XPATH,
             '//div[contains(@class,"assignment-description")]//textarea' +
             '[contains(@class,"form-control")]'). \
             send_keys(description)
+        if break_point == Assignment.BEFORE_PERIOD:
+            return
         self.assign_periods(driver, periods)
         # add reading sections to the assignment
         driver.find_element(By.ID, 'reading-select').click()
@@ -411,7 +441,11 @@ class Assignment(object):
                  'dialog")]')
             )
         )
+        if break_point == Assignment.BEFORE_SECTION_SELECT:
+            return
         self.select_sections(driver, readings)
+        if break_point == Assignment.BEFORE_READING_SELECT:
+            return
         driver.find_element(By.XPATH,
                             '//button[text()="Add Readings"]').click()
         wait.until(
@@ -419,6 +453,8 @@ class Assignment(object):
                 (By.XPATH, '//span[text()="Publish"]')
             )
         )
+        if break_point == Assignment.BEFORE_STATUS_SELECT:
+            return
         self.select_status(driver, status)
 
     def find_all_questions(self, driver, problems):
@@ -595,7 +631,7 @@ class Assignment(object):
         ).click()
 
     def add_new_homework(self, driver, title, description, periods, problems,
-                         status):
+                         status, break_point=None):
         '''
         Add a new homework assignment
 
@@ -627,14 +663,24 @@ class Assignment(object):
                 (By.XPATH, '//div[contains(@class,"homework-plan")]')
             )
         )
+        if break_point == Assignment.BEFORE_TITLE:
+            return
         driver.find_element(By.ID, 'reading-title').send_keys(title)
+        if break_point == Assignment.BEFORE_DESCRIPTION:
+            return
         driver.find_element(
             By.XPATH,
             '//div[contains(@class,"assignment-description")]' +
             '//textarea[contains(@class,"form-control")]'). \
             send_keys(description)
+        if break_point == Assignment.BEFORE_PERIOD:
+            return
         self.assign_periods(driver, periods)
+        if break_point == Assignment.BEFORE_EXERCISE_SELECT:
+            return
         self.add_homework_problems(driver, problems)
+        if break_point == Assignment.BEFORE_STATUS_SELECT:
+            return
         self.select_status(driver, status)
 
     def add_new_external(self, driver, title, description, periods,
@@ -642,85 +688,85 @@ class Assignment(object):
         '''
 
         '''
-        raise NotImplementedError
+        raise NotImplementedError(inspect.currentframe().f_code.co_name)
 
     def add_new_event(self, driver, title, description, periods, status):
         '''
 
         '''
-        raise NotImplementedError
+        raise NotImplementedError(inspect.currentframe().f_code.co_name)
 
     def add_new_review(self, driver, title, description, periods, assessments,
                        assignment_url, status):
         '''
 
         '''
-        raise NotImplementedError
+        raise NotImplementedError(inspect.currentframe().f_code.co_name)
 
-    def change_reading(self, driver, title, description, periods, readings,
-                       status):
+    def change_reading(self, driver, title, description='', periods={},
+                       readings=[], status=DRAFT):
         '''
 
         '''
-        raise NotImplementedError
+        raise NotImplementedError(inspect.currentframe().f_code.co_name)
 
     def change_homework(self, driver, title, description, periods, problems,
                         status):
         '''
 
         '''
-        raise NotImplementedError
+        raise NotImplementedError(inspect.currentframe().f_code.co_name)
 
-    def achange_external(self, driver, title, description, periods,
-                         assignment_url, status):
+    def change_external(self, driver, title, description, periods,
+                        assignment_url, status):
         '''
 
         '''
-        raise NotImplementedError
+        raise NotImplementedError(inspect.currentframe().f_code.co_name)
 
     def change_event(self, driver, title, description, periods, status):
         '''
 
         '''
-        raise NotImplementedError
+        raise NotImplementedError(inspect.currentframe().f_code.co_name)
 
     def change_review(self, driver, title, description, periods, assessments,
                       assignment_url, status):
         '''
 
         '''
-        raise NotImplementedError
+        raise NotImplementedError(inspect.currentframe().f_code.co_name)
 
     def delete_reading(self, driver, title, description, periods, readings,
                        status):
         '''
 
         '''
-        raise NotImplementedError
+        raise NotImplementedError(inspect.currentframe().f_code.co_name)
 
     def delete_homework(self, driver, title, description, periods, problems,
                         status):
         '''
 
         '''
-        raise NotImplementedError
+        raise NotImplementedError(inspect.currentframe().f_code.co_name)
 
     def delete_external(self, driver, title, description, periods,
                         assignment_url, status):
         '''
 
         '''
-        raise NotImplementedError
+        raise NotImplementedError(inspect.currentframe().f_code.co_name)
 
     def delete_event(self, driver, title, description, periods, status):
         '''
 
         '''
-        raise NotImplementedError
+        raise NotImplementedError(inspect.currentframe().f_code.co_name)
 
     def delete_review(self, driver, title, description, periods, assessments,
                       assignment_url, status):
         '''
 
         '''
-        raise NotImplementedError
+        raise NotImplementedError(inspect.currentframe().f_code.co_name)

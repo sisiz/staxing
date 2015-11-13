@@ -70,6 +70,8 @@ class TestTutorAssignments(unittest.TestCase):
                                self.helper.user.url)
         self.helper.user.select_course(self.driver, category='Physics')
         self.screenshot_path = '~/Desktop/ScreenshotErrors'
+        self.assign = self.helper.user.assignment
+        self.today = StaxHelper.date_string(today=True)
 
     def tearDown(self):
         if sys.exc_info()[0]:  # Returns the info of exception being handled
@@ -84,210 +86,536 @@ class TestTutorAssignments(unittest.TestCase):
         status = (sys.exc_info() == (None, None, None))
         self.ps.update_job(self.driver.session_id, passed=status)
 
-    @pytest.mark.skipif(NOT_STARTED, reason='Not started')
-    def test_assignment_all_plus_cancel(self):
+    # @pytest.mark.skipif(NOT_STARTED, reason='Not started')
+    def test_assignment_by_period_draft_to_all_cancel_to_period_delete(self):
         '''
-        all  0    1    1S  cancel
-        all  0    2,1  1S  cancel
-        all  0    2,3  1S  cancel
-        all  1    2    1S  cancel
-        all  1,2  2,3  1S  cancel
-        all  1,0  2    1S  cancel
         '''
+        # 1st / 0 / 1 / 1S / Draft
+        # 2nd / 0 / 1 / 1S
+        # all / 0 / 1 / 1S / Cancel
+        # 1st / 0 / 1 / 1S / Delete
+        # 2nd / 0 / 1 / 1S
+        name = 'Automated 2'
+        description = 'by period draft to all cancel to period delete'
+        open_p1 = StaxHelper.date_string()
+        close_p1 = StaxHelper.date_string(1)
+        open_p2 = StaxHelper.date_string(1)
+        close_p2 = StaxHelper.date_string(2)
+        open_all = StaxHelper.date_string()
+        close_all = StaxHelper.date_string(1)
+        try:
+            self.assign.add_new_reading(
+                driver=self.driver,
+                title=name,
+                description=description,
+                periods={
+                    '1st': (open_p1, close_p1),
+                    '2nd': (open_p2, close_p2), },
+                readings=['1.1'],
+                status=self.assign.DRAFT, )
+        except Exception as ex:
+            assert(False), '1: Add :: %s :: %s' % (ex.__class__.__name__, ex)
+        try:
+            self.assign.change_reading(
+                driver=self.driver,
+                title=name,
+                periods={
+                    'all': (open_all, close_all), },
+                status=self.assign.CANCEL)
+        except Exception as ex:
+            assert(False), '2: Edit :: %s :: %s' % (ex.__class__.__name__, ex)
+        try:
+            self.assign.remove_reading(
+                driver=self.driver,
+                title=name)
+        except Exception as ex:
+            assert(False), '3: Remove :: %s :: %s' % \
+                (ex.__class__.__name__, ex)
 
     @pytest.mark.skipif(NOT_STARTED, reason='Not started')
-    def test_assignment_by_period_plus_cancel(self):
+    def test_assignment_by_period_draft_to_all_draft_to_delete(self):
         '''
-        by_period  0  1  1S  cancel
-        by_period  1  2  1S  cancel
         '''
+        # 1st / 0 / 1 / 1S / Draft
+        # 2nd / 1 / 2 / 1S
+        # all / 0 / 2 / 1S / Draft
+        # all / 0 / 2 / 1S / Delete
 
     @pytest.mark.skipif(NOT_STARTED, reason='Not started')
-    def test_assignment_all_plus_draft(self):
+    def test_assignment_by_period_publish_to_all_publish_fail(self):
         '''
-        all  0    1    1S  draft
-        all  0    2,1  1S  draft
-        all  0    2,3  1S  draft
-        all  1    2    1S  draft
-        all  1,2  2,3  1S  draft
-        all  1,0  2    1S  draft
         '''
+        # 1st / 0 / 1 / 1S / Publish
+        # 2nd / 0 / 1 / 1S
+        # all / 0 / 1 / 1S / Publish **
 
     @pytest.mark.skipif(NOT_STARTED, reason='Not started')
-    def test_assignment_by_period_plus_draft(self):
+    def test_assignment_by_period_publish_to_delete_fail(self):
         '''
-        by_period  0  1  1S  draft
-        by_period  1  2  1S  draft
         '''
+        # 1st / 0 / 1 / 1S / Publish
+        # 2nd / 1 / 2 / 1S
+        # 1st / 0 / 1 / 1S / Delete **
+        # 2nd / 1 / 2 / 1S
 
     @pytest.mark.skipif(NOT_STARTED, reason='Not started')
-    def test_assignment_mix_plus_draft_and_cancel(self):
+    def test_assignment_by_period_publish_to_all_publish_to_delete_fail(self):
         '''
-        all + by_period  0  1  1S  draft + cancel
-        by_period + all  0  1  1S  draft + cancel
         '''
+        # 1st / 0 / 1 / 1S / Publish
+        # 2nd / 1 / 2 / 1S
+        # all / 0 / 2 / 1S / Publish
+        # all / 0 / 2 / 1S / Delete **
 
     @pytest.mark.skipif(NOT_STARTED, reason='Not started')
-    def test_assignment_all_plus_draft_and_delete(self):
+    def test_assignment_by_period_publish_to_all_cancel_to_period_delete(self):
         '''
-        all  0    1    1S  draft + delete
-        all  0    2,1  1S  draft + delete
-        all  0    2,3  1S  draft + delete
-        all  1    2    1S  draft + delete
-        all  1,2  2,3  1S  draft + delete
-        all  1,0  2    1S  draft + delete
         '''
+        # 1st / 1 / 2 / 1S / Publish
+        # 2nd / 1 / 2 / 1S
+        # all / 1 / 2 / 1S / Cancel
+        # 1st / 1 / 2 / 1S / Delete
+        # 2nd / 1 / 2 / 1S
 
     @pytest.mark.skipif(NOT_STARTED, reason='Not started')
-    def test_assignment_all_and_by_period_plus_draft_and_delete(self):
+    def test_assignment_status_by_period_publish_to_all_publish_to_delete(
+            self):
         '''
-        all + by_period  0  1  1S  draft + delete
-        all + by_period  1  2  1S  draft + delete
         '''
+        # 1st / 1 / 2 / 1S / Publish
+        # 2nd / 1 / 2 / 1S
+        # all / 1 / 2 / 1S / Publish
+        # all / 1 / 2 / 1S / Delete
 
     @pytest.mark.skipif(NOT_STARTED, reason='Not started')
-    def test_assignment_by_period_plus_draft_and_delete(self):
+    def test_assignment_by_period_publish_to_delete(self):
         '''
-        by_period  0  1  1S  draft + delete
-        by_period  1  2  1S  draft + delete
         '''
+        # 1st / 1 / 2 / 1S / Publish
+        # 2nd / 2 / 3 / 1S
+        # 1st / 1 / 2 / 1S / Delete
+        # 2nd / 2 / 3 / 1S
 
     @pytest.mark.skipif(NOT_STARTED, reason='Not started')
-    def test_assignment_by_period_and_all_plus_draft_and_delete(self):
+    def test_assignment_dates_by_period_publish_to_all_publish_to_delete(self):
         '''
-        by_period + all  0  1  1S  draft + delete
-        by_period + all  1  2  1S  draft + delete
         '''
+        # 1st / 1 / 2 / 1S / Publish
+        # 2nd / 2 / 3 / 1S
+        # all / 1 / 3 / 1S / Publish
+        # all / 1 / 3 / 1S / Delete
 
     @pytest.mark.skipif(NOT_STARTED, reason='Not started')
-    def test_assignment_all_plus_draft_and_draft(self):
+    def test_assignment_all_cancel(self):
         '''
-        all  1    2  1C               draft + draft
-        all  1    2  1C - 1S          draft + draft
-        all  1    2  1C + 1S          draft + draft
-        all  1    2  1S + 1S          draft + draft
-        all  1    2  2S - 1S          draft + draft
-        all  1    2  2S + (+1S, -1S)  draft + draft
-        all  2,1  3  1S               draft + draft
         '''
+        # all / 0 / 1 / 1S / Cancel
 
     @pytest.mark.skipif(NOT_STARTED, reason='Not started')
-    def test_assignment_all_and_by_period_plus_draft_and_draft(self):
+    def test_assignment_all_draft_to_period_cancel_to_all_delete(self):
         '''
-        all + by_period  0  1  1S  draft + draft
-        all + by_period  1  2  1S  draft + draft
         '''
+        # all / 0 / 1 / 1S / Draft
+        # 1st / 0 / 1 / 1S / Cancel
+        # 2nd / 0 / 1 / 1S
+        # all / 0 / 1 / 1S / Delete
 
     @pytest.mark.skipif(NOT_STARTED, reason='Not started')
-    def test_assignment_by_period_and_all_plus_draft_and_draft(self):
+    def test_assignment_all_draft_to_period_draft_to_delete(self):
         '''
-        by_period + all  0  1  1S  draft + draft
-        by_period + all  1  2  1S  draft + draft
         '''
+        # all / 0 / 1 / 1S / Draft
+        # 1st / 0 / 1 / 1S / Draft
+        # 2nd / 1 / 2 / 1S
+        # 1st / 0 / 1 / 1S / Delete
+        # 2nd / 1 / 2 / 1S
 
     @pytest.mark.skipif(NOT_STARTED, reason='Not started')
-    def test_assignment_all_plus_draft_and_publish(self):
+    def test_assignment_section_all_draft_to_delete(self):
         '''
-        all  1    2  1C               draft + publish
-        all  1    2  1C - 1S          draft + publish
-        all  1    2  1C + 1S          draft + publish
-        all  1    2  1S + 1S          draft + publish
-        all  1    2  2S - 1S          draft + publish
-        all  1    2  2S + (+1S, -1S)  draft + publish
-        all  2,1  3  1S               draft + publish
         '''
+        # all / 0 / 1 / 1S / Draft
+        # all / 0 / 1 / 1S / Delete
 
     @pytest.mark.skipif(NOT_STARTED, reason='Not started')
-    def test_assignment_all_plus_publish(self):
+    def test_assignment_chapter_all_draft_to_delete(self):
         '''
-        all  0    1    1S  publish
-        all  0    2,1  1S  publish
-        all  0    2,3  1S  publish
-        all  1    2    1S  publish
-        all  1,2  2,3  1S  publish
-        all  1,0  2    1S  publish
         '''
+        # all / 1 / 2 / 1C / Draft
+        # all / 1 / 2 / 1C / Delete
 
     @pytest.mark.skipif(NOT_STARTED, reason='Not started')
-    def test_assignment_by_period_plus_publish(self):
+    def test_assignment_all_publish_to_period_publish_to_period_delete_fail(
+            self):
         '''
-        by_period  0  1  1S  publish
-        by_period  1  2  1S  publish
         '''
+        # all / 0 / 1 / 1S / Publish
+        # 1st / 0 / 1 / 1S / Publish
+        # 2nd / 0 / 1 / 1S
+        # 1st / 0 / 1 / 1S / Delete **
+        # 2nd / 0 / 1 / 1S
 
     @pytest.mark.skipif(NOT_STARTED, reason='Not started')
-    def test_assignment_mix_plus_publish_and_cancel(self):
+    def test_assignment_all_publish_to_period_publish_fail(self):
         '''
-        all + by_period  1  2  1S  publish + cancel
-        by_period + all  1  2  1S  publish + cancel
         '''
+        # all / 0 / 1 / 1S / Publish
+        # 1st / 0 / 1 / 1S / Publish **
+        # 2nd / 0 / 1 / 1S
 
     @pytest.mark.skipif(NOT_STARTED, reason='Not started')
-    def test_assignment_all_plus_publish_and_delete(self):
+    def test_assignment_all_publish_to_delete_fail(self):
         '''
-        all  0    1    1S  publish + delete
-        all  0    2,1  1S  publish + delete
-        all  0    2,3  1S  publish + delete
-        all  1    2    1S  publish + delete
-        all  1,2  2,3  1S  publish + delete
-        all  1,0  2    1S  publish + delete
         '''
+        # all / 0 / 1 / 1S / Publish
+        # all / 0 / 1 / 1S / Delete **
 
     @pytest.mark.skipif(NOT_STARTED, reason='Not started')
-    def test_assignment_all_and_by_period_plus_publish_and_delete(self):
+    def test_assignment_due_dates_all_draft_to_cancel_to_delete(self):
         '''
-        all + by_period  0  1  1S  publish + delete
-        all + by_period  1  2  1S  publish + delete
         '''
+        # all / 0 / 2 / 1S / Draft
+        # all / 0 / 1 / 1S / Cancel
+        # all / 0 / 2 / 1S / Delete
 
     @pytest.mark.skipif(NOT_STARTED, reason='Not started')
-    def test_assignment_by_period_plus_publish_and_delete(self):
+    def test_assignment_open_dates_all_draft_to_cancel_to_delete(self):
         '''
-        by_period  0  1  1S  publish + delete
-        by_period  1  2  1S  publish + delete
         '''
+        # all / 1 / 2 / 1S / Draft
+        # all / 0 / 2 / 1S / Cancel
+        # all / 1 / 2 / 1S / Delete
 
     @pytest.mark.skipif(NOT_STARTED, reason='Not started')
-    def test_assignment_by_period_and_all_plus_publish_and_delete(self):
+    def test_assignment_dates_all_draft_to_cancel_to_delete(self):
         '''
-        by_period + all  0  1  1S  publish + delete
-        by_period + all  1  2  1S  publish + delete
         '''
+        # all / 1 / 2 / 1S / Draft
+        # all / 2 / 3 / 1S / Cancel
+        # all / 1 / 2 / 1S / Delete
 
     @pytest.mark.skipif(NOT_STARTED, reason='Not started')
-    def test_assignment_all_plus_publish_and_draft(self):
+    def test_assignment_due_dates_all_draft_to_draft_to_delete(self):
         '''
-        all  1    2  1C               publish + draft
-        all  1    2  1C - 1S          publish + draft
-        all  1    2  1C + 1S          publish + draft
-        all  1    2  1S + 1S          publish + draft
-        all  1    2  2S - 1S          publish + draft
-        all  1    2  2S + (+1S, -1S)  publish + draft
-        all  2,1  3  1S               publish + draft
         '''
+        # all / 0 / 2 / 1S / Draft
+        # all / 0 / 1 / 1S / Draft
+        # all / 0 / 1 / 1S / Delete
 
     @pytest.mark.skipif(NOT_STARTED, reason='Not started')
-    def test_assignment_all_plus_publish_and_publish(self):
+    def test_assignment_due_earlier_all_publish_to_publish_to_delete_fail(
+            self):
         '''
-        all  1    2  1C               publish + publish
-        all  1    2  1C - 1S          publish + publish
-        all  1    2  1C + 1S          publish + publish
-        all  1    2  1S + 1S          publish + publish
-        all  1    2  2S - 1S          publish + publish
-        all  1    2  2S + (+1S, -1S)  publish + publish
-        all  2,1  3  1S               publish + publish
         '''
+        # all / 0 / 2 / 1S / Publish
+        # all / 0 / 1 / 1S / Publish
+        # all / 0 / 1 / 1S / Delete **
 
     @pytest.mark.skipif(NOT_STARTED, reason='Not started')
-    def test_assignment_all_and_by_period_plus_publish_and_publish(self):
+    def test_assignment_due_later_all_publish_to_publish_to_delete_fail(self):
         '''
-        all + by_period  0  1  1S  publish + publish
-        all + by_period  1  2  1S  publish + publish
         '''
+        # all / 0 / 2 / 1S / Publish
+        # all / 0 / 3 / 1S / Publish
+        # all / 0 / 3 / 1S / Delete **
 
     @pytest.mark.skipif(NOT_STARTED, reason='Not started')
-    def test_assignment_by_period_and_all_plus_publish_and_publish(self):
+    def test_assignment_sections_all_draft_to_draft_to_delete(self):
         '''
-        by_period + all  0  1  1S  publish + publish
-        by_period + all  1  2  1S  publish + publish
         '''
+        # all / 1 / 2 / 1C  / Draft
+        # all / 1 / 2 / 1C - 1S / Draft
+        # all / 1 / 2 / 1C - 1S / Delete
+
+    @pytest.mark.skipif(NOT_STARTED, reason='Not started')
+    def test_assignment_all_draft_to_draft_to_publish_to_delete(
+            self):
+        '''
+        '''
+        # all / 1 / 2 / 1C  / Draft
+        # all / 1 / 2 / 1C - 1S / Draft
+        # all / 1 / 2 / 1C - 1S / Publish
+        # all / 1 / 2 / 1C - 1S / Delete
+
+    @pytest.mark.skipif(NOT_STARTED, reason='Not started')
+    def test_assignment_chapter_plus_sections_all_draft_to_draft_to_delete(
+            self):
+        '''
+        '''
+        # all / 1 / 2 / 1C  / Draft
+        # all / 1 / 2 / 1C + 1S / Draft
+        # all / 1 / 2 / 1C + 1S / Delete
+
+    @pytest.mark.skipif(NOT_STARTED, reason='Not started')
+    def test_assignment_section_plus_sections_all_draft_to_draft_to_delete(
+            self):
+        '''
+        '''
+        # all / 1 / 2 / 1S  / Draft
+        # all / 1 / 2 / 1S + 1S / Draft
+        # all / 1 / 2 / 2S  / Delete
+
+    @pytest.mark.skipif(NOT_STARTED, reason='Not started')
+    def test_assignment_chapter_plus_sections_all_draft_to_publish_to_delete(
+            self):
+        '''
+        '''
+        # all / 1 / 2 / 1C  / Draft
+        # all / 1 / 2 / 1C + 1S / Publish
+        # all / 1 / 2 / 1C + 1S / Delete
+
+    @pytest.mark.skipif(NOT_STARTED, reason='Not started')
+    def test_assignment_section_plus_sections_all_draft_to_publish_to_delete(
+            self):
+        '''
+        '''
+        # all / 1 / 2 / 1S  / Draft
+        # all / 1 / 2 / 1S + 1S / Publish
+        # all / 1 / 2 / 2S  / Delete
+
+    @pytest.mark.skipif(NOT_STARTED, reason='Not started')
+    def test_assignment_chapter_minus_sections_all_publish_to_draft_to_delete(
+            self):
+        '''
+        '''
+        # all / 1 / 2 / 1C  / Publish
+        # all / 1 / 2 / 1C - 1S / Draft
+        # all / 1 / 2 / 1C - 1S / Delete
+
+    @pytest.mark.skipif(NOT_STARTED, reason='Not started')
+    def test_assignment_open_dates_all_publish_to_draft_to_delete(self):
+        '''
+        '''
+        # all / 2 / 3 / 1S / Publish
+        # all / 1 / 3 / 1S / Draft
+        # all / 1 / 3 / 1S / Delete
+
+    @pytest.mark.skipif(NOT_STARTED, reason='Not started')
+    def test_assignment_section_minus_sections_all_publish_to_draft_to_delete(
+            self):
+        '''
+        '''
+        # all / 1 / 2 / 2S  / Publish
+        # all / 1 / 2 / 2S - 1S / Draft
+        # all / 1 / 2 / 1S  / Delete
+
+    @pytest.mark.skipif(NOT_STARTED, reason='Not started')
+    def test_assignment_ch_minus_sections_all_publish_to_publish_to_delete(
+            self):
+        '''
+        '''
+        # all / 1 / 2 / 1C  / Publish
+        # all / 1 / 2 / 1C - 1S / Publish
+        # all / 1 / 2 / 1C - 1S / Delete
+
+    @pytest.mark.skipif(NOT_STARTED, reason='Not started')
+    def test_assignment_dates_all_publish_to_publish_to_delete(self):
+        '''
+        '''
+        # all / 1 / 2 / 1S / Publish
+        # all / 2 / 3 / 1S / Publish
+        # all / 2 / 3 / 1S / Delete
+
+    @pytest.mark.skipif(NOT_STARTED, reason='Not started')
+    def test_assignment_sec_minus_sections_all_publish_to_publish_to_delete(
+            self):
+        '''
+        '''
+        # all / 1 / 2 / 2S  / Publish
+        # all / 1 / 2 / 2S - 1S / Publish
+        # all / 1 / 2 / 1S  / Delete
+
+    @pytest.mark.skipif(NOT_STARTED, reason='Not started')
+    def test_assignment_chapter_plus_sections_all_publish_to_draft_to_delete(
+            self):
+        '''
+        '''
+        # all / 1 / 2 / 1C  / Publish
+        # all / 1 / 2 / 1C + 1S / Draft
+        # all / 1 / 2 / 1C + 1S / Delete
+
+    @pytest.mark.skipif(NOT_STARTED, reason='Not started')
+    def test_assignment_section_plus_sections_all_publish_to_draft_to_delete(
+            self):
+        '''
+        '''
+        # all / 1 / 2 / 1S  / Publish
+        # all / 1 / 2 / 1S + 1S / Draft
+        # all / 1 / 2 / 2S  / Delete
+
+    @pytest.mark.skipif(NOT_STARTED, reason='Not started')
+    def test_assignment_chapter_plus_sections_all_publish_to_publish_to_delete(
+            self):
+        '''
+        '''
+        # all / 1 / 2 / 1C  / Publish
+        # all / 1 / 2 / 1C + 1S / Publish
+        # all / 1 / 2 / 1C + 1S / Delete
+
+    @pytest.mark.skipif(NOT_STARTED, reason='Not started')
+    def test_assignment_chapter_all_draft_to_publish_to_delete(self):
+        '''
+        '''
+        # all / 1 / 2 / 1C / Draft
+        # all / 1 / 2 / 1C / Publish
+        # all / 1 / 2 / 1C / Delete
+
+    @pytest.mark.skipif(NOT_STARTED, reason='Not started')
+    def test_assignment_chapter_all_publish_to_draft_to_delete(self):
+        '''
+        '''
+        # all / 1 / 2 / 1C / Publish
+        # all / 1 / 2 / 1C / Draft
+        # all / 1 / 2 / 1C / Delete
+
+    @pytest.mark.skipif(NOT_STARTED, reason='Not started')
+    def test_assignment_chapter_all_publish_to_publish_to_delete(self):
+        '''
+        '''
+        # all / 1 / 2 / 1C / Publish
+        # all / 1 / 2 / 1C / Publish
+        # all / 1 / 2 / 1C / Delete
+
+    @pytest.mark.skipif(NOT_STARTED, reason='Not started')
+    def test_assignment_section_plus_sections_all_publish_to_publish_to_delete(
+            self):
+        '''
+        '''
+        # all / 1 / 2 / 1S  / Publish
+        # all / 1 / 2 / 1S + 1S / Publish
+        # all / 1 / 2 / 2S  / Delete
+
+    @pytest.mark.skipif(NOT_STARTED, reason='Not started')
+    def test_assignment_open_dates_all_draft_to_draft_to_delete(self):
+        '''
+        '''
+        # all / 1 / 2 / 1S / Draft
+        # all / 0 / 2 / 1S / Draft
+        # all / 0 / 2 / 1S / Delete
+
+    @pytest.mark.skipif(NOT_STARTED, reason='Not started')
+    def test_assignment_minus_sections_all_draft_to_draft_to_delete(self):
+        '''
+        '''
+        # all / 1 / 2 / 2S  / Draft
+        # all / 1 / 2 / 2S - 1S / Draft
+        # all / 1 / 2 / 1S  / Delete
+
+    @pytest.mark.skipif(NOT_STARTED, reason='Not started')
+    def test_assignment_dates_all_draft_to_draft_to_delete(self):
+        '''
+        '''
+        # all / 1 / 2 / 1S / Draft
+        # all / 2 / 3 / 1S / Draft
+        # all / 2 / 3 / 1S / Delete
+
+    @pytest.mark.skipif(NOT_STARTED, reason='Not started')
+    def test_assignment_all_draft_to_delete(self):
+        '''
+        '''
+        # all / 1 / 2 / 1S / Draft
+        # all / 1 / 2 / 1S / Delete
+
+    @pytest.mark.skipif(NOT_STARTED, reason='Not started')
+    def test_assignment_all_publish_to_period_cancel_to_all_delete(self):
+        '''
+        '''
+        # all / 1 / 2 / 1S / Publish
+        # 1st / 1 / 2 / 1S / Cancel
+        # 2nd / 1 / 2 / 1S
+        # all / 1 / 2 / 1S / Delete
+
+    @pytest.mark.skipif(NOT_STARTED, reason='Not started')
+    def test_assignment_all_publish_to_period_publish_to_delete(self):
+        '''
+        '''
+        # all / 1 / 2 / 1S / Publish
+        # 1st / 1 / 2 / 1S / Publish
+        # 2nd / 1 / 2 / 1S
+        # 1st / 1 / 2 / 1S / Delete
+        # 2nd / 1 / 2 / 1S
+
+    @pytest.mark.skipif(NOT_STARTED, reason='Not started')
+    def test_assignment_all_publish_to_publish_to_delete_fail(self):
+        '''
+        '''
+        # all / 1 / 2 / 1S / Publish
+        # all / 0 / 2 / 1S / Publish
+        # all / 0 / 2 / 1S / Delete **
+
+    @pytest.mark.skipif(NOT_STARTED, reason='Not started')
+    def test_assignment_all_publish_to_delete(self):
+        '''
+        '''
+        # all / 1 / 2 / 1S / Publish
+        # all / 1 / 2 / 1S / Delete
+
+    @pytest.mark.skipif(NOT_STARTED, reason='Not started')
+    def test_assignment_minus_section_all_draft_to_publish_to_delete(self):
+        '''
+        '''
+        # all / 1 / 2 / 2S  / Draft
+        # all / 1 / 2 / 2S - 1S / Publish
+        # all / 1 / 2 / 1S  / Delete
+
+    @pytest.mark.skipif(NOT_STARTED, reason='Not started')
+    def test_assignment_dates_all_draft_to_publish_to_delete(self):
+        '''
+        '''
+        # all / 2 / 3 / 1S / Draft
+        # all / 1 / 3 / 1S / Publish
+        # all / 1 / 3 / 1S / Delete
+
+    @pytest.mark.skipif(NOT_STARTED, reason='Not started')
+    def test_assignment_all_draft_to_draft_to_draft_to_delete(self):
+        '''
+        '''
+        # all / 1 / 2 / 2S  / Draft
+        # all / 1 / 2 / 2S + 1S / Draft
+        # all / 1 / 2 / 3S - 1S / Draft
+        # all / 1 / 2 / 2S  / Delete
+
+    @pytest.mark.skipif(NOT_STARTED, reason='Not started')
+    def test_assignment_all_draft_to_publish_to_draft_to_publish_to_delete(
+            self):
+        '''
+        '''
+        # all / 1 / 2 / 2S  / Draft
+        # all / 1 / 2 / 2S + 1S / Publish
+        # all / 1 / 2 / 3S - 1S / Draft
+        # all / 1 / 2 / 2S  / Publish
+        # all / 1 / 2 / 2S  / Delete
+
+    @pytest.mark.skipif(NOT_STARTED, reason='Not started')
+    def test_assignment_all_publish_to_draft_to_draft_to_delete(self):
+        '''
+        '''
+        # all / 1 / 2 / 2S  / Publish
+        # all / 1 / 2 / 2S + 1S / Draft
+        # all / 1 / 2 / 3S - 1S / Draft
+        # all / 1 / 2 / 2S  / Delete
+
+    @pytest.mark.skipif(NOT_STARTED, reason='Not started')
+    def test_assignment_all_publish_to_publish_to_publish_to_delete(self):
+        '''
+        '''
+        # all / 1 / 2 / 2S  / Publish
+        # all / 1 / 2 / 2S + 1S / Publish
+        # all / 1 / 2 / 3S - 1S / Publish
+        # all / 1 / 2 / 2S  / Delete
+
+    @pytest.mark.skipif(NOT_STARTED, reason='Not started')
+    def test_assignment_all_draft_to_draft_to_delete(self):
+        '''
+        '''
+        # all / 2 / 3 / 1S / Draft
+        # all / 1 / 3 / 1S / Draft
+        # all / 1 / 3 / 1S / Delete
+
+    @pytest.mark.skipif(NOT_STARTED, reason='Not started')
+    def test_assignment_all_publish_to_publish_to_delete(self):
+        '''
+        '''
+        # all / 2 / 3 / 1S / Publish
+        # all / 1 / 3 / 1S / Publish
+        # all / 1 / 3 / 1S / Delete
