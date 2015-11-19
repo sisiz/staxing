@@ -213,8 +213,10 @@ class User(object):
         wait = WebDriverWait(driver, StaxHelper.WAIT_TIME)
         wait.until(
             expect.element_to_be_clickable(
-                (By.XPATH, '//div[@data-%s="%s"]//a' %
-                 (uses_option, course))
+                (
+                    By.XPATH, '//div[@data-%s="%s"]//a' %
+                    (uses_option, course)
+                )
             )
         ).click()
 
@@ -395,29 +397,94 @@ class Admin(object):
         self.password = password if password is not None \
             else os.environ['ADMIN_PASSWORD']
 
-    def goto_admin_control(self):
+    def goto_admin_control(self, driver):
         '''
         Access the administrator controls
-
-        ToDo: all
         '''
-        raise NotImplementedError(inspect.currentframe().f_code.co_name)
+        wait = WebDriverWait(driver, 15)
+        wait.until(
+            expect.visibility_of_element_located(
+                (
+                    By.XPATH,
+                    '//li[contains(@class,"-hamburger-menu")]/' +
+                    'a[@type="button"]'
+                )
+            )
+        ).click()
+        wait.until(
+            expect.visibility_of_element_located(
+                (By.LINK_TEXT, 'Admin')
+            )
+        ).click()
+        wait.until(
+            expect.visibility_of_element_located(
+                (By.XPATH, '//h1[text()="Admin Console"]')
+            )
+        )
 
-    def goto_courses(self):
+    def goto_courses(self, driver):
         '''
         Access the course admin control
-
-        ToDo: all
         '''
-        raise NotImplementedError(inspect.currentframe().f_code.co_name)
+        wait = WebDriverWait(driver, 15)
+        try:
+            wait.until(
+                expect.visibility_of_element_located(
+                    (By.XPATH, '//h1[text()="Admin Console"]')
+                )
+            )
+        except:
+            self.goto_admin_control(driver)
+        organization = wait.until(
+            expect.element_to_be_clickable(
+                (By.PARTIAL_LINK_TEXT, 'Course Organization')
+            )
+        )
+        if 'open' not in organization.find_element(By.XPATH, '..'). \
+                get_attribute('class'):
+            organization.click()
+        wait.until(
+            expect.element_to_be_clickable(
+                (By.LINK_TEXT, 'Courses')
+            )
+        ).click()
+        wait.until(
+            expect.visibility_of_element_located(
+                (By.XPATH, '//h1[text()="Courses"]')
+            )
+        )
 
-    def goto_ecosystems(self):
+    def goto_ecosystems(self, driver):
         '''
         Access the ecosystem admin control
-
-        ToDo: all
         '''
-        raise NotImplementedError(inspect.currentframe().f_code.co_name)
+        wait = WebDriverWait(driver, 15)
+        try:
+            wait.until(
+                expect.visibility_of_element_located(
+                    (By.XPATH, '//h1[text()="Admin Console"]')
+                )
+            )
+        except:
+            self.goto_admin_control(driver)
+        content = wait.until(
+            expect.element_to_be_clickable(
+                (By.PARTIAL_LINK_TEXT, 'Content')
+            )
+        )
+        if 'open' not in content.find_element(By.XPATH, '..'). \
+                get_attribute('class'):
+            content.click()
+        wait.until(
+            expect.element_to_be_clickable(
+                (By.LINK_TEXT, 'Ecosystems')
+            )
+        ).click()
+        wait.until(
+            expect.visibility_of_element_located(
+                (By.XPATH, '//h1[text()="Ecosystems"]')
+            )
+        )
 
 
 class Email(object):
