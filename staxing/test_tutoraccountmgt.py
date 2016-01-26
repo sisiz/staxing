@@ -61,7 +61,7 @@ class TestTutorAcctMgt(unittest.TestCase):
 
     def test_user_registration(self):
         self.driver.get('https://accounts-qa.openstax.org/')
-        assert('Sign in with' in self.driver.title), 'Unable to load page'
+        assert('Sign in ' in self.driver.title), 'Unable to load page'
         self.driver.find_element(By.LINK_TEXT, 'Sign up').click()
         username = 'testuser_%s' % self.rword(5)
         first_name = 'Test User'
@@ -207,7 +207,7 @@ class TestTutorAcctMgt(unittest.TestCase):
              ', not ' + str(*standard_window))
         # open the test URL and click the login button within the sub-menu
         self.driver.get('https://accounts-qa.openstax.org/')
-        assert('Sign in with' in self.driver.title), 'Unable to load page'
+        assert('Sign in ' in self.driver.title), 'Unable to load page'
         # enter the username and password
         self.driver.find_element(By.ID, 'auth_key'). \
             send_keys(self.helper.user.name)
@@ -227,7 +227,7 @@ class TestTutorAcctMgt(unittest.TestCase):
             ('Window size set to: ' + str(*size) +
              ', not ' + str(*standard_window))
         self.driver.get('https://accounts-qa.openstax.org/')
-        assert('Sign in with' in self.driver.title), 'Unable to load page'
+        assert('Sign in ' in self.driver.title), 'Unable to load page'
         self.driver.find_element(By.ID, 'auth_key'). \
             send_keys('not_a_user_94720475')
         self.driver.find_element(By.ID, 'password'). \
@@ -261,7 +261,7 @@ class TestTutorAcctMgt(unittest.TestCase):
             click()
         self.wait.until(
             expect.element_to_be_clickable(
-                (By.XPATH, '//div[@data-title="Physics"]//a')
+                (By.XPATH, '//div[contains(@data-title, "Physics")]//a')
             )
         ).click()
         dashboard = self.wait.until(
@@ -279,7 +279,7 @@ class TestTutorAcctMgt(unittest.TestCase):
              ', not ' + str(*standard_window))
         self.driver.set_window_size(*standard_window)
         self.driver.get('https://accounts-qa.openstax.org/')
-        assert('Sign in with' in self.driver.title), 'Unable to load page'
+        assert('Sign in ' in self.driver.title), 'Unable to load page'
         link = self.driver.find_element(By.LINK_TEXT, 'Forgot password?')
         link.click()
         username = self.wait.until(

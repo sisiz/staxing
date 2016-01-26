@@ -415,7 +415,7 @@ class Assignment(object):
         self.open_assignment_menu(driver)
         driver.find_element(By.LINK_TEXT, 'Add Reading').click()
         time.sleep(1)
-        wait = WebDriverWait(driver, Assignment.WAIT_TIME)
+        wait = WebDriverWait(driver, Assignment.WAIT_TIME * 3)
         wait.until(
             expect.element_to_be_clickable(
                 (By.ID, 'reading-title')

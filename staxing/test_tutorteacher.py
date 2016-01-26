@@ -40,7 +40,7 @@ class TestTutorTeacher(unittest.TestCase):
         self.driver.set_window_size(*standard_window)
         self.helper.user.login(self.driver, teacher, teacher_password,
                                self.helper.user.url)
-        self.helper.user.select_course(self.driver, category='Physics')
+        self.helper.user.select_course(self.driver, title='physics')
         self.rword = self.helper.user.assignment.rword
         self.screenshot_path = '/tmp/errors/'
 
