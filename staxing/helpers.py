@@ -95,13 +95,14 @@ class StaxHelper(object):
             raise IndexError('Unknown dimension: %s' % dimension)
         return get_size[dimension]
 
-    class WebDriverTypeException(WebDriverException):
-        def __init__(self, msg, err):
-            self.msg = msg
-            self.__traceback__ = err
 
-        def __str__(self):
-            return repr(self.msg, self.__traceback__)
+class WebDriverTypeException(WebDriverException):
+    def __init__(self, msg, err):
+        self.msg = msg
+        self.__traceback__ = err
+
+    def __str__(self):
+        return repr(self.msg, self.__traceback__)
 
 
 class User(object):
@@ -259,12 +260,13 @@ class User(object):
             By.XPATH, '//li/a[contains(@class,"view-reference-guide")]'
         ).click()
 
-    class LoginError(Exception):
-        def __init__(self, value):
-            self.value = value
 
-        def __str__(self):
-            return repr(self.value)
+class LoginError(Exception):
+    def __init__(self, value):
+        self.value = value
+
+    def __str__(self):
+        return repr(self.value)
 
 
 class Teacher(User):
