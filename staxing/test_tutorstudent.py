@@ -1,51 +1,28 @@
 import unittest
-import sys
+import pytest
 
 # from selenium.webdriver.common.by import By
 # from selenium.webdriver.common.keys import Keys
 # from selenium.webdriver.support import expected_conditions as expect
 from selenium.webdriver.support.ui import WebDriverWait
-# import datetime
+from datetime import datetime
 
 from pastasauce import PastaSauce, PastaDecorator
-from . import StaxHelper
+from . import StaxHelper, Student
+try:
+    from . import Assignment
+except:
+    from staxing.assignment import Assignment
 
 NOT_STARTED = True
-if NOT_STARTED:
-    import pytest
 
 browsers = [{
-    "platform": "Windows 10",
-    "browserName": "internet explorer",
-    "version": "11"
-}, {
-    "platform": "OS X 10.11",
-    "browserName": "safari",
-    "version": "8.1"
-}, {
-    "platform": "Windows 7",
-    "browserName": "internet explorer",
-    "version": "11.0",
-    "screenResolution": "1440x900"
-}, {
-    "platform": "Windows 7",
-    "browserName": "chrome",
-    "version": "44.0",
-    "screenResolution": "1440x900"
-}, {
     "platform": "Windows 7",
     "browserName": "firefox",
     "version": "40.0",
     "screenResolution": "1440x900"
-}, {
-    "platform": "OS X 10.9",
-    "browserName": "iPhone",
-    "version": "7.1",
-    "deviceName": "iPad Retina (64-bit)",
-    "deviceOrientation": "portrait"
 }]
-# use 1 browser setup
-browsers = [browsers[4]]
+
 standard_window = (1440, 800)
 compressed_window = (700, 500)
 
@@ -55,27 +32,37 @@ class TestTutorStudent(unittest.TestCase):
     ''''''
     def setUp(self):
         self.ps = PastaSauce()
-        self.helper = StaxHelper()
         self.desired_capabilities['name'] = self.id()
-        student = self.helper.student.name
-        student_password = self.helper.student.password
-        self.driver = StaxHelper.run_on(
-            StaxHelper.LOCAL, self.ps, self.desired_capabilities
-        )
-        self.driver.implicitly_wait(15)
-        self.wait = WebDriverWait(self.driver, 15)
+        self.student = Student(use_env_vars=True)
+        self.helper = StaxHelper(driver_type='chrome', pasta_user=self.ps,
+                                 capabilities=self.desired_capabilities,
+                                 initial_user=self.student)
+        self.driver = self.helper.driver
+        self.wait = WebDriverWait(self.driver, StaxHelper.DEFAULT_WAIT_TIME)
         self.driver.set_window_size(*standard_window)
-        self.helper.user.login(self.driver, student, student_password,
-                               self.helper.user.url)
-        self.helper.user.select_course(self.driver, category='Physics')
-
-        # # # TODO: setup test assignments # # #
+        self.teacher.login()
+        self.teacher.select_course(title='physics')
+        self.rword = Assignment.rword
+        self.screenshot_path = '/tmp/errors/'
 
     def tearDown(self):
-        ''''''
+        # Returns the info of exception being handled
+        has_errors = self._test_has_failed()
+        if has_errors:
+            print(self.driver.current_url, '\n')
+            date_and_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S-%f')
+            filename = 'testerr_%s.png' % date_and_time
+            self.driver.save_screenshot('%s%s' % (self.screenshot_path,
+                                        filename))
         self.driver.quit()
-        status = (sys.exc_info() == (None, None, None))
-        self.ps.update_job(self.driver.session_id, passed=status)
+        self.ps.update_job(self.driver.session_id, passed=has_errors)
+
+    def _test_has_failed(self):
+        # for 3.4. In 3.3, can just use self._outcomeForDoCleanups.success:
+        for method, error in self._outcome.errors:
+            if error:
+                return True
+        return False
 
     @pytest.mark.skipif(NOT_STARTED, reason='Not started')
     def test_student_views_dashboard(self):
