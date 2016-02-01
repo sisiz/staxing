@@ -8,7 +8,11 @@ from selenium.webdriver.support.ui import WebDriverWait
 from datetime import datetime
 
 from pastasauce import PastaSauce, PastaDecorator
-from . import StaxHelper
+from . import StaxHelper, Student
+try:
+    from . import Assignment
+except:
+    from staxing.assignment import Assignment
 
 NOT_STARTED = True
 
@@ -28,20 +32,17 @@ class TestTutorStudent(unittest.TestCase):
     ''''''
     def setUp(self):
         self.ps = PastaSauce()
-        self.helper = StaxHelper()
         self.desired_capabilities['name'] = self.id()
-        student = self.helper.student.name
-        student_password = self.helper.student.password
-        self.driver = StaxHelper.run_on(
-            StaxHelper.LOCAL, self.ps, self.desired_capabilities
-        )
-        self.driver.implicitly_wait(15)
-        self.wait = WebDriverWait(self.driver, 15)
+        self.student = Student(use_env_vars=True)
+        self.helper = StaxHelper(driver_type='chrome', pasta_user=self.ps,
+                                 capabilities=self.desired_capabilities,
+                                 initial_user=self.student)
+        self.driver = self.helper.driver
+        self.wait = WebDriverWait(self.driver, StaxHelper.DEFAULT_WAIT_TIME)
         self.driver.set_window_size(*standard_window)
-        self.helper.user.login(self.driver, student, student_password,
-                               self.helper.user.url)
-        self.helper.user.select_course(self.driver, category='Physics')
-        self.rword = self.helper.user.assignment.rword
+        self.teacher.login()
+        self.teacher.select_course(title='physics')
+        self.rword = Assignment.rword
         self.screenshot_path = '/tmp/errors/'
 
     def tearDown(self):

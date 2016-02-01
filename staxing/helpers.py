@@ -4,7 +4,6 @@ import datetime
 import inspect
 import os
 import sys
-import time
 import unittest
 
 from builtins import FileNotFoundError
@@ -17,13 +16,10 @@ from selenium.webdriver.support.ui import WebDriverWait
 from time import sleep
 from urllib.parse import urlparse, ParseResult
 
-if __name__ == '__main__':
+try:
+    from staxing.assignment import Assignment
+except ImportError:
     from assignment import Assignment
-else:
-    try:
-        from staxing.assignment import Assignment
-    except ImportError:
-        from assignment import Assignment
 
 
 class StaxHelper(object):
@@ -33,12 +29,20 @@ class StaxHelper(object):
 
     def __init__(self, driver_type='chrome', capabilities=None,
                  pasta_user=None, wait_time=DEFAULT_WAIT_TIME,
-                 opera_driver='/Applications/operadriver'):
+                 opera_driver='/Applications/operadriver', initial_user=None):
+
         self.webdriver_service = None
+        self.user = initial_user
         if driver_type == 'saucelabs' and pasta_user is None:
             raise TypeError('A Sauce Labs user is required for remote testing')
+        self.pasta = pasta_user
+        self.driver = self.run_on(driver_type, self.pasta, capabilities)
+        self.driver.implicitly_wait(wait_time)
+
+    def run_on(self, driver_type, pasta_user, capabilities=None,
+               wait=DEFAULT_WAIT_TIME, opera_driver=''):
         try:
-            self.driver = {
+            return {
                 'firefox': lambda: webdriver.Firefox(),
                 'chrome': lambda: webdriver.Chrome(),
                 'ie': lambda: webdriver.Ie(),
@@ -59,14 +63,13 @@ class StaxHelper(object):
                 msg='Unknown WebDriver type: "%s"' % driver_type,
                 err=err.__traceback__
             )
-        self.wait = WebDriverWait(self.driver, wait_time)
 
     def start_opera(self, location):
         from selenium.webdriver.chrome import service
-        self.webdriver_service = service.Service(location)
-        self.webdriver_service.start()
-        self.driver = webdriver.Remote(
-            self.webdriver_service.service_url,
+        webdriver_service = service.Service(location)
+        webdriver_service.start()
+        return webdriver.Remote(
+            webdriver_service.service_url,
             webdriver.DesiredCapabilities.OPERA
         )
 
@@ -76,10 +79,10 @@ class StaxHelper(object):
             strftime(str_format)
 
     def quit(self):
-        self.webdriver_service.stop() if \
-            self.webdriver_service is not None else self.driver.quit()
-        sleep(1)
-        del self
+        try:
+            self.driver.quit()
+        except:
+            pass
 
     def get(self, url):
         self.driver.get(url)
@@ -103,37 +106,36 @@ class StaxHelper(object):
 
 class User(object):
     ''''''
-    def __init__(self, helper=None, user='None', username=None, password=None,
-                 site=None, email=None):
-        self.sh = helper
-        self.user_type = user
+    DEFAULT_WAIT_TIME = StaxHelper.DEFAULT_WAIT_TIME
+
+    def __init__(self, username=None, password=None, site=None, email=None):
         self.username = username
         self.password = password
-        parse = urlparse(site)
-        if parse.scheme != 'https':
-            parse = list(parse)
-            parse[0] = 'https'
-            parse = ParseResult(*parse)
-            self.url = parse.geturl()
-        else:
-            self.url = site
+        parse = list(urlparse(site if urlparse(site).scheme else
+                     '%s%s' % ('//', site)))
+        parse[0] = b'https'
+        for index, value in enumerate(parse):
+            parse[index] = value.decode('utf-8') if isinstance(value, bytes) \
+                else value
+        parse = ParseResult(*parse)
+        self.url = parse.geturl()
         self.email = email
 
-    def login(self, username=None, password=None, url=None):
+    def login(self, driver, username=None, password=None, url=None,
+              wait_time=DEFAULT_WAIT_TIME):
         '''
         Tutor login control
 
         Requires a Tutor or Accounts instance
         Branching to deal with standard or compact screen widths
         '''
-        driver = self.sh.driver
-        wait = self.sh.wait
+        wait = WebDriverWait(driver, wait_time)
         url_address = self.url if url is None else url
         # open the URL
         driver.get(url_address)
         if 'tutor' in url_address:
             # check to see if the screen width is normal or condensed
-            if self.sh.get_window_size('width') <= \
+            if driver.get_window_size()['width'] <= \
                     StaxHelper.CONDENSED_WIDTH:
                 # get small-window menu toggle
                 is_collapsed = driver.find_element(
@@ -165,72 +167,74 @@ class User(object):
             By.XPATH, '//button[text()="Sign in"]'
         ).click()
 
-    def logout(self):
+    def logout(self, driver):
         '''
         Logout control
         '''
-        url_address = self.sh.driver.current_url
+        url_address = driver.current_url
         if 'tutor' in url_address:
-            self.tutor_logout()
+            self.tutor_logout(driver)
         elif 'accounts' in url_address:
-            self.accounts_logout()
+            self.accounts_logout(driver)
         else:
             raise HTTPError('Not an OpenStax URL')
 
-    def open_user_menu(self):
+    def open_user_menu(self, driver, wait_time=DEFAULT_WAIT_TIME):
         '''
         Hamburger menu opener
 
         ToDo: branching to handle if a toggle is already open
         '''
-        if self.sh.get_window_size('width') <= StaxHelper.CONDENSED_WIDTH:
+        wait = WebDriverWait(driver, wait_time)
+        if driver.get_window_size('width') <= StaxHelper.CONDENSED_WIDTH:
             # compressed window display on Tutor
-            self.sh.wait.until(
+            wait.until(
                 expect.visibility_of_element_located(
                     (By.CLASS_NAME, 'navbar-toggle')
                 )
             ).click()
-        self.sh.wait.until(
+        wait.until(
             expect.visibility_of_element_located(
                 (By.CLASS_NAME, 'dropdown-toggle')
             )
         ).click()
 
-    def tutor_logout(self):
+    def tutor_logout(self, driver, wait_time=DEFAULT_WAIT_TIME):
         '''
         Tutor logout helper
         '''
-        self.open_user_menu()
-        self.sh.wait.until(
+        self.open_user_menu(driver, wait_time)
+        WebDriverWait(driver, wait_time).until(
             expect.visibility_of_element_located(
                 (By.XPATH, '//button[@aria-label="Sign out"]')
             )
         ).click()
 
-    def accounts_logout(self):
+    def accounts_logout(self, driver):
         '''
         Accounts logout helper
         '''
-        self.sh.driver.find_element(By.LINK_TEXT, 'Sign out').click()
+        driver.find_element(By.LINK_TEXT, 'Sign out').click()
 
-    def select_course(self, title=None, category=None):
+    def select_course(self, driver, title=None, category=None,
+                      wait_time=DEFAULT_WAIT_TIME):
         '''
         Course selection
 
         ToDo: allow selection of course 3 or higher
         '''
-        if 'dashboard' not in self.sh.driver.current_url:
+        if 'dashboard' not in driver.current_url:
             return
         if title:
             uses_option = 'title'
             course = title
         elif category:
-            uses_option = 'category'
+            uses_option = 'appearance'
             course = category.lower()
         else:
             raise self.LoginError('Unknown course selection "%s"' %
                                   title if title else category)
-        self.sh.wait.until(
+        WebDriverWait(driver, wait_time).until(
             expect.element_to_be_clickable(
                 (
                     By.XPATH, '//div[@data-%s="%s"]//a' %
@@ -239,17 +243,18 @@ class User(object):
             )
         ).click()
 
-    def view_reference_book(self):
+    def view_reference_book(self, driver, wait_time=DEFAULT_WAIT_TIME):
         '''
         Access the reference book
         '''
-        driver = self.sh.driver
-        browse = driver.find_element(
-            By.XPATH, '//div/a[contains(@class,"view-reference-guide")]')
-        if browse:
-            browse.click()
+        try:
+            driver.find_element(
+                By.XPATH, '//div/a[contains(@class,"view-reference-guide")]'
+            ).click()
             return
-        self.open_user_menu()
+        except:
+            pass
+        self.open_user_menu(driver, wait_time)
         driver.find_element(
             By.XPATH, '//li/a[contains(@class,"view-reference-guide")]'
         ).click()
@@ -264,20 +269,24 @@ class User(object):
 
 class Teacher(User):
     ''''''
-    def __init__(self, helper=None, user='teacher', username=None,
-                 password=None, site=None, email=None, use_env_vars=False):
+    DEFAULT_WAIT_TIME = User.DEFAULT_WAIT_TIME
+
+    def __init__(self, username=None, password=None, site=None, email=None,
+                 use_env_vars=False):
         if use_env_vars:
             username = os.environ['TEACHER_USER']
             password = os.environ['TEACHER_PASSWORD']
-        super().__init__(helper, user, username, password, site, email)
+            site = os.environ['SERVER_URL']
+            email = os.environ['TEST_EMAIL_ACCOUNT']
+        super().__init__(username, password, site, email)
 
-    def add_assignment(self, assignment, args):
+    def add_assignment(self, driver, assignment, args):
         '''
         Add an assignment
         '''
         assign = Assignment()
         assign.add[assignment](
-            driver=self.sh.driver,
+            driver=driver,
             name=args['title'],
             description=args['description'],
             periods=args['periods'],
@@ -288,13 +297,13 @@ class Teacher(User):
             problems=args['problems'] if 'problems' in args else None,
         )
 
-    def change_assignment(self, assignment, args):
+    def change_assignment(self, driver, assignment, args):
         '''
         Alter an existing assignment
         '''
         assign = Assignment()
         assign.edit[assignment](
-            driver=self.sh.driver,
+            driver=driver,
             name=args['title'],
             description=args['description'],
             periods=args['periods'],
@@ -305,13 +314,13 @@ class Teacher(User):
             problems=args['problems'] if 'problems' in args else None,
         )
 
-    def delete_assignment(self, assignment, args):
+    def delete_assignment(self, driver, assignment, args):
         '''
         Delete an existing assignment (if available)
         '''
         assign = Assignment()
         assign.remove[assignment](
-            driver=self.sh.driver,
+            driver=driver,
             name=args['title'],
             description=args['description'],
             periods=args['periods'],
@@ -322,53 +331,54 @@ class Teacher(User):
             problems=args['problems'] if 'problems' in args else None,
         )
 
-    def goto_menu_item(self, item):
+    def goto_menu_item(self, driver, item, wait_time=DEFAULT_WAIT_TIME):
         '''
         Go to a specific user menu item
         '''
-        driver = self.sh.driver
         if 'courses' in driver.current_url:
-            User.open_user_menu(driver)
-            self.sh.wait.until(
+            self.open_user_menu(driver)
+            WebDriverWait(driver, wait_time).until(
                 expect.element_to_be_clickable(
                     (By.LINK_TEXT, item)
                 )
             ).click()
 
-    def goto_calendar(self):
+    def goto_calendar(self, driver):
         '''
         Return the teacher to the calendar dashboard
         '''
         try:
-            self.sh.driver.find_element(
+            return driver.find_element(
                 By.XPATH, '//a[contains(@class,"navbar-brand")]'
             ).click()
-            return
         except:
-            pass
-        self.goto_menu_item('Dashboard')
+            self.goto_menu_item('Dashboard')
 
-    def goto_performance_forecast(self):
+    def goto_performance_forecast(self, driver, wait_time=DEFAULT_WAIT_TIME):
         '''
         Access the performance forecast page
         '''
-        self.goto_menu_item('Performance Forecast')
+        self.goto_menu_item(driver, 'Performance Forecast', wait_time)
 
-    def goto_student_scores(self):
+    def goto_student_scores(self, driver, wait_time=DEFAULT_WAIT_TIME):
         '''
         Access the student scores page
         '''
-        self.goto_menu_item('Student Scores')
+        self.goto_menu_item(driver, 'Student Scores', wait_time)
 
 
 class Student(User):
     ''''''
-    def __init__(self, helper=None, user='student', username=None,
-                 password=None, site=None, email=None, use_env_vars=False):
+    DEFAULT_WAIT_TIME = User.DEFAULT_WAIT_TIME
+
+    def __init__(self, username=None, password=None, site=None, email=None,
+                 use_env_vars=False):
         if use_env_vars:
             username = os.environ['STUDENT_USER']
             password = os.environ['STUDENT_PASSWORD']
-        super().__init__(helper, user, username, password, site, email)
+            site = os.environ['SERVER_URL']
+            email = os.environ['TEST_EMAIL_ACCOUNT']
+        super().__init__(username, password, site, email)
 
     def work_assignment(self):
         '''
@@ -405,24 +415,28 @@ class Student(User):
 
 class Admin(User):
     ''''''
-    def __init__(self, helper=None, user='admin', username=None, password=None,
-                 site=None, email=None, use_env_vars=False):
+    DEFAULT_WAIT_TIME = User.DEFAULT_WAIT_TIME
+
+    def __init__(self, username=None, password=None, site=None, email=None,
+                 use_env_vars=False):
         if use_env_vars:
             username = os.environ['ADMIN_USER']
             password = os.environ['ADMIN_PASSWORD']
-        super().__init__(helper, user, username, password, site, email)
+            site = os.environ['SERVER_URL']
+            email = os.environ['TEST_EMAIL_ACCOUNT']
+        super().__init__(username, password, site, email)
 
-    def goto_admin_control(self):
+    def goto_admin_control(self, driver, wait_time=WebDriverWait):
         '''
         Access the administrator controls
         '''
-        wait = self.sh.wait
+        wait = WebDriverWait(driver, wait_time)
         wait.until(
             expect.visibility_of_element_located(
                 (
-                    By.XPATH,
-                    '//li[contains(@class,"-hamburger-menu")]/' +
-                    'a[@type="button"]'
+                    By.XPATH, '%s%s' %
+                    ('//li[contains(@class,"-hamburger-menu")]/',
+                     'a[@type="button"]')
                 )
             )
         ).click()
@@ -437,11 +451,11 @@ class Admin(User):
             )
         )
 
-    def goto_courses(self):
+    def goto_courses(self, driver, wait_time=DEFAULT_WAIT_TIME):
         '''
         Access the course admin control
         '''
-        wait = self.sh.wait
+        wait = WebDriverWait(driver, wait_time)
         try:
             wait.until(
                 expect.visibility_of_element_located(
@@ -449,7 +463,7 @@ class Admin(User):
                 )
             )
         except:
-            self.goto_admin_control()
+            self.goto_admin_control(driver, wait_time)
         organization = wait.until(
             expect.element_to_be_clickable(
                 (By.PARTIAL_LINK_TEXT, 'Course Organization')
@@ -469,11 +483,11 @@ class Admin(User):
             )
         )
 
-    def goto_ecosystems(self):
+    def goto_ecosystems(self, driver, wait_time=DEFAULT_WAIT_TIME):
         '''
         Access the ecosystem admin control
         '''
-        wait = self.sh.wait
+        wait = WebDriverWait(driver, wait_time)
         try:
             wait.until(
                 expect.visibility_of_element_located(
@@ -504,21 +518,25 @@ class Admin(User):
 
 class ContentQA(User):
     ''''''
-    def __init__(self, helper=None, user='content', username=None,
-                 password=None, site=None, email=None, use_env_vars=False):
+    DEFAULT_WAIT_TIME = User.DEFAULT_WAIT_TIME
+
+    def __init__(self, username=None, password=None, site=None, email=None,
+                 use_env_vars=False):
         if use_env_vars:
             username = os.environ['CONTENT_USER']
             password = os.environ['CONTENT_PASSWORD']
-        super().__init__(helper, user, username, password, site, email)
+            site = os.environ['SERVER_URL']
+            email = os.environ['TEST_EMAIL_ACCOUNT']
+        super().__init__(username, password, site, email)
+
+# ########################################################################### #
 
 
 class TestStaxHelper(unittest.TestCase):
     def test_staxhelper_chrome(self):
         try:
             helper = StaxHelper().quit()
-            helper = StaxHelper()
-            user = User(helper)
-            del user
+            helper = StaxHelper(initial_user=User())
             helper.quit()
             helper = StaxHelper(driver_type='chrome').quit()
         except FileNotFoundError or WebDriverException:
@@ -562,8 +580,8 @@ class TestStaxHelper(unittest.TestCase):
 
 class TestUser(unittest.TestCase):
     def setUp(self):
-        self.helper = StaxHelper()
-        self.user = User(helper=self.helper)
+        self.user = User()
+        self.helper = StaxHelper(initial_user=self.user)
 
     def tearDown(self):
         self.helper.quit()
@@ -582,50 +600,50 @@ class TestUser(unittest.TestCase):
 class TestTeacherUser(unittest.TestCase):
     def setUp(self):
         self.user = Teacher()
+        self.helper = StaxHelper(initial_user=self.user)
 
     def tearDown(self):
-        ''''''
+        self.helper.quit()
 
 
 class TestStudentUser(unittest.TestCase):
     def setUp(self):
         self.user = Student()
+        self.helper = StaxHelper(initial_user=self.user)
 
     def tearDown(self):
-        ''''''
+        self.helper.quit()
 
 
 class TestAdminUser(unittest.TestCase):
     def setUp(self):
         self.user = Admin()
+        self.helper = StaxHelper(initial_user=self.user)
 
     def tearDown(self):
-        ''''''
+        self.helper.quit()
 
 
 class TestContentQAUser(unittest.TestCase):
     def setUp(self):
         self.user = ContentQA()
+        self.helper = StaxHelper(initial_user=self.user)
 
     def teardown(self):
-        ''''''
+        self.helper.quit()
 
 
 class TestAssignments(unittest.TestCase):
     def setUp(self):
         self.today = datetime.date.today()
-        self.helper = StaxHelper()
         self.user = Teacher(helper=self.helper,
                             site='http://tutor-qa.openstax.org/',
                             username='physics',
                             password='password')
+        self.helper = StaxHelper(initial_user=self.user)
 
     def tearDown(self):
-        self.user.helper = None
-        try:
-            self.helper.quit()
-        except:
-            pass
+        self.helper.quit()
 
     def test_assignments(self):
         begin = (self.today + datetime.timedelta(days=0)).strftime('%m/%d/%Y')
@@ -645,7 +663,7 @@ class TestAssignments(unittest.TestCase):
                     'status': 'publish',
                 }
             )
-            time.sleep(5)
+            sleep(5)
         homework = 'test-hw %s' % Assignment.rword(8)
         self.user.add_assignment(
             assignment='homework',

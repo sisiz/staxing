@@ -5,14 +5,17 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support import expected_conditions as expect
-from selenium.webdriver.support.ui import Select
-from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support.ui import Select, WebDriverWait
 from selenium.common.exceptions import NoSuchElementException
 from datetime import datetime
 from time import sleep
 
 from pastasauce import PastaSauce, PastaDecorator
-from . import StaxHelper
+from . import StaxHelper, Admin
+try:
+    from . import Assignment
+except:
+    from staxing.assignment import Assignment
 
 NOT_STARTED = True
 
@@ -31,20 +34,16 @@ compressed_window = (700, 500)
 class TestTutorAdmin(unittest.TestCase):
     def setUp(self):
         self.ps = PastaSauce()
-        self.helper = StaxHelper()
         self.desired_capabilities['name'] = self.id()
-        admin = self.helper.admin.name
-        admin_password = self.helper.admin.password
-        self.driver = StaxHelper.run_on(
-            StaxHelper.LOCAL, self.ps, self.desired_capabilities
-        )
-        self.driver.implicitly_wait(15)
-        self.wait = WebDriverWait(self.driver, 15)
+        self.admin = Admin(use_env_vars=True)
+        self.helper = StaxHelper(driver_type='chrome', pasta_user=self.ps,
+                                 capabilities=self.desired_capabilities,
+                                 initial_user=self.admin)
+        self.driver = self.helper.driver
+        self.wait = WebDriverWait(self.driver, StaxHelper.DEFAULT_WAIT_TIME)
         self.driver.set_window_size(*standard_window)
-        self.helper.user.login(self.driver, admin, admin_password,
-                               self.helper.user.url)
-        # self.helper.user.select_course(self.driver, category='Physics')
-        self.rword = self.helper.user.assignment.rword
+        self.admin.login(self.driver)
+        self.rword = Assignment.rword
         self.screenshot_path = '/tmp/errors/'
 
     def tearDown(self):
@@ -68,8 +67,8 @@ class TestTutorAdmin(unittest.TestCase):
 
     @pytest.mark.skipif(NOT_STARTED, reason='Not started')
     def test_admin_imports_a_new_ecosystem_book(self):
-        self.helper.admin.goto_admin_control(self.driver)
-        self.helper.admin.goto_ecosystems(self.driver)
+        self.admin.goto_admin_control(self.driver)
+        self.admin.goto_ecosystems(self.driver)
         assert(self.driver.find_element(By.XPATH,
                '//h1[text()="Ecosystems"]')), 'Ecosystems not found'
         table = self.driver.find_element(By.ID, 'main')
@@ -106,7 +105,7 @@ class TestTutorAdmin(unittest.TestCase):
 
     # @pytest.mark.skipif(NOT_STARTED, reason='Not started')
     def test_admin_creates_a_district(self):
-        self.helper.admin.goto_admin_control(self.driver)
+        self.admin.goto_admin_control(self.driver)
         self.wait.until(
             expect.element_to_be_clickable(
                 (By.XPATH, '//a[contains(.,"Organization")]')
@@ -151,7 +150,7 @@ class TestTutorAdmin(unittest.TestCase):
 
     # @pytest.mark.skipif(NOT_STARTED, reason='Not started')
     def test_admin_edits_a_district(self):
-        self.helper.admin.goto_admin_control(self.driver)
+        self.admin.goto_admin_control(self.driver)
         self.wait.until(
             expect.element_to_be_clickable(
                 (By.XPATH, '//a[contains(text(),"Organization")]')
@@ -208,7 +207,7 @@ class TestTutorAdmin(unittest.TestCase):
 
     # @pytest.mark.skipif(NOT_STARTED, reason='Not started')
     def test_admin_deletes_a_district(self):
-        self.helper.admin.goto_admin_control(self.driver)
+        self.admin.goto_admin_control(self.driver)
         self.wait.until(
             expect.element_to_be_clickable(
                 (By.XPATH, '//a[contains(text(),"Organization")]')
@@ -251,7 +250,7 @@ class TestTutorAdmin(unittest.TestCase):
     # @pytest.mark.skipif(NOT_STARTED, reason='Not started')
     def test_admin_creates_a_school(self):
         ''''''
-        self.helper.admin.goto_admin_control(self.driver)
+        self.admin.goto_admin_control(self.driver)
         self.wait.until(
             expect.element_to_be_clickable(
                 (By.XPATH, '//a[contains(text(),"Organization")]')
@@ -299,7 +298,7 @@ class TestTutorAdmin(unittest.TestCase):
     # @pytest.mark.skipif(NOT_STARTED, reason='Not started')
     def test_admin_edits_a_school(self):
         ''''''
-        self.helper.admin.goto_admin_control(self.driver)
+        self.admin.goto_admin_control(self.driver)
         self.wait.until(
             expect.element_to_be_clickable(
                 (By.XPATH, '//a[contains(text(),"Organization")]')
@@ -359,7 +358,7 @@ class TestTutorAdmin(unittest.TestCase):
     # @pytest.mark.skipif(NOT_STARTED, reason='Not started')
     def test_admin_deletes_a_school(self):
         ''''''
-        self.helper.admin.goto_admin_control(self.driver)
+        self.admin.goto_admin_control(self.driver)
         self.wait.until(
             expect.element_to_be_clickable(
                 (By.XPATH, '//a[contains(text(),"Organization")]')
@@ -398,7 +397,7 @@ class TestTutorAdmin(unittest.TestCase):
     @pytest.mark.skipif(NOT_STARTED, reason='Not started')
     def test_admin_creates_a_course(self):
         ''''''
-        self.helper.admin.goto_admin_control(self.driver)
+        self.admin.goto_admin_control(self.driver)
         self.wait.until(
             expect.element_to_be_clickable(
                 (By.XPATH, '//a[contains(text(),"Organization")]')
@@ -446,7 +445,7 @@ class TestTutorAdmin(unittest.TestCase):
     # @pytest.mark.skipif(NOT_STARTED, reason='Not started')
     def test_admin_edits_a_course(self):
         ''''''
-        self.helper.admin.goto_admin_control(self.driver)
+        self.admin.goto_admin_control(self.driver)
         self.wait.until(
             expect.element_to_be_clickable(
                 (By.XPATH, '//a[contains(text(),"Organization")]')
@@ -585,7 +584,7 @@ class TestTutorAdmin(unittest.TestCase):
             self.fail('Student Roster upload page not loaded :: %s :: %s' %
                       (ex.__class__.__name__, ex))
         self.driver.find_element(By.LINK_TEXT, 'Main Dashboard').click()
-        self.helper.admin.goto_admin_control(self.driver)
+        self.admin.goto_admin_control(self.driver)
         self.wait.until(
             expect.element_to_be_clickable(
                 (By.XPATH, '//a[contains(text(),"Organization")]')

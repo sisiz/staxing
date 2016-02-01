@@ -8,7 +8,12 @@ from selenium.webdriver.support.ui import WebDriverWait
 from datetime import datetime, date
 
 from pastasauce import PastaSauce, PastaDecorator
-from . import StaxHelper
+from . import StaxHelper, Teacher
+
+try:
+    from . import Assignment
+except:
+    from staxing.assignment import Assignment
 
 NOT_STARTED = True
 
@@ -28,20 +33,17 @@ class TestTutorTeacher(unittest.TestCase):
     ''''''
     def setUp(self):
         self.ps = PastaSauce()
-        self.helper = StaxHelper()
         self.desired_capabilities['name'] = self.id()
-        teacher = self.helper.teacher.name
-        teacher_password = self.helper.teacher.password
-        self.driver = StaxHelper.run_on(
-            StaxHelper.LOCAL, self.ps, self.desired_capabilities
-        )
-        self.driver.implicitly_wait(15)
-        self.wait = WebDriverWait(self.driver, 15)
+        self.teacher = Teacher(use_env_vars=True)
+        self.helper = StaxHelper(driver_type='chrome', pasta_user=self.ps,
+                                 capabilities=self.desired_capabilities,
+                                 initial_user=self.teacher)
+        self.driver = self.helper.driver
+        self.wait = WebDriverWait(self.driver, StaxHelper.DEFAULT_WAIT_TIME)
         self.driver.set_window_size(*standard_window)
-        self.helper.user.login(self.driver, teacher, teacher_password,
-                               self.helper.user.url)
-        self.helper.user.select_course(self.driver, title='physics')
-        self.rword = self.helper.user.assignment.rword
+        self.teacher.login(self.driver)
+        self.teacher.select_course(self.driver, category='physics')
+        self.rword = Assignment.rword
         self.screenshot_path = '/tmp/errors/'
 
     def tearDown(self):
@@ -53,7 +55,11 @@ class TestTutorTeacher(unittest.TestCase):
             filename = 'testerr_%s.png' % date_and_time
             self.driver.save_screenshot('%s%s' % (self.screenshot_path,
                                         filename))
-        self.driver.quit()
+        try:
+            self.driver = None
+            self.helper.driver.quit()
+        except AttributeError:
+            pass
         self.ps.update_job(self.driver.session_id, passed=has_errors)
 
     def _test_has_failed(self):
@@ -79,13 +85,8 @@ class TestTutorTeacher(unittest.TestCase):
     @pytest.mark.skipif(NOT_STARTED, reason='Not started')
     def test_teacher_views_student_scores(self):
         ''''''
-        # login teacher
-        self.helper.user.login(self.driver,
-                               self.helper.user.name,
-                               self.helper.user.password,
-                               self.helper.user.url)
         # click on student scores
-        self.helper.teacher.goto_student_scores(self.driver)
+        self.helper.user.goto_student_scores(self.driver)
 
     @pytest.mark.skipif(NOT_STARTED, reason='Not started')
     def test_teacher_views_reference_book(self):

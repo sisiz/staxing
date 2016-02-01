@@ -9,7 +9,11 @@ from selenium.webdriver.common.action_chains import ActionChains
 from datetime import datetime
 
 from pastasauce import PastaSauce, PastaDecorator
-from . import StaxHelper
+from . import StaxHelper, Teacher
+try:
+    from . import Assignment
+except:
+    from staxing.assignment import Assignment
 
 # NOT_STARTED = True
 
@@ -25,19 +29,21 @@ compressed_window = (700, 500)
 
 
 @PastaDecorator.on_platforms(browsers)
-class TestTutorAcctMgt(unittest.TestCase):
+class TestTutorAccountManagement(unittest.TestCase):
     ''''''
     def setUp(self):
         self.ps = PastaSauce()
-        self.helper = StaxHelper()
         self.desired_capabilities['name'] = self.id()
-        self.driver = StaxHelper.run_on(
-            StaxHelper.LOCAL, self.ps, self.desired_capabilities
-        )
-        self.driver.implicitly_wait(15)
-        self.wait = WebDriverWait(self.driver, 15)
+        self.teacher = Teacher(use_env_vars=True)
+        self.helper = StaxHelper(driver_type='chrome', pasta_user=self.ps,
+                                 capabilities=self.desired_capabilities,
+                                 initial_user=self.teacher)
+        self.driver = self.helper.driver
+        self.wait = WebDriverWait(self.driver, StaxHelper.DEFAULT_WAIT_TIME)
         self.driver.set_window_size(*standard_window)
-        self.rword = self.helper.user.assignment.rword
+        # self.teacher.login(self.driver)
+        # self.teacher.select_course(self.driver, category='physics')
+        self.rword = Assignment.rword
         self.screenshot_path = '/tmp/errors/'
 
     def tearDown(self):
@@ -66,11 +72,14 @@ class TestTutorAcctMgt(unittest.TestCase):
         username = 'testuser_%s' % self.rword(5)
         first_name = 'Test User'
         last_name = self.rword(6)
+        email = self.teacher.email
         self.wait.until(
             expect.visibility_of_element_located(
                 (By.ID, 'register_username')
             )
         ).send_keys(username)
+        self.driver.find_element(By.ID, 'register_email'). \
+            send_keys(email)
         self.driver.find_element(By.ID, 'register_password'). \
             send_keys('password')
         self.driver.find_element(By.ID, 'register_password_confirmation'). \
@@ -80,7 +89,7 @@ class TestTutorAcctMgt(unittest.TestCase):
         ).click()
         self.wait.until(
             expect.visibility_of_element_located(
-                (By.LINK_TEXT, 'Finish setting up my account')
+                (By.XPATH, '//input[@type="submit" and @name="commit"]')
             )
         ).click()
         self.wait.until(
@@ -101,9 +110,10 @@ class TestTutorAcctMgt(unittest.TestCase):
         self.driver.find_element(By.LINK_TEXT, 'Terms of Use').click()
         self.wait.until(
             expect.element_to_be_clickable(
-                (By.XPATH, '//button[@class="close"]')
+                (By.ID, 'register_submit')
             )
         ).click()
+        # ########### add relogin section
         self.wait.until(
             expect.element_to_be_clickable(
                 (By.LINK_TEXT, 'Privacy Policy')
@@ -136,14 +146,14 @@ class TestTutorAcctMgt(unittest.TestCase):
             ('Window size set to: %sx%s, not %sx%s' %
              (size['width'], str(*size)))
         # open the test URL and click the login button
-        self.driver.get(self.helper.user.url)
+        self.driver.get(self.teacher.url)
         assert('OpenStax Tutor' in self.driver.title), 'Unable to load page'
         self.driver.find_element(By.LINK_TEXT, 'Login').click()
         # enter the username and password
         self.driver.find_element(By.ID, 'auth_key'). \
-            send_keys(self.helper.admin.name)
+            send_keys(self.teacher.username)
         self.driver.find_element(By.ID, 'password'). \
-            send_keys(self.helper.admin.password)
+            send_keys(self.teacher.password)
         # click on the sign in button to log in
         self.driver.find_element(
             By.XPATH, '//button[text()="Sign in"]'
@@ -184,9 +194,9 @@ class TestTutorAcctMgt(unittest.TestCase):
         login.click()
         # enter the username and password
         self.driver.find_element(By.ID, 'auth_key'). \
-            send_keys(self.helper.admin.name)
+            send_keys(self.helper.user.username)
         self.driver.find_element(By.ID, 'password'). \
-            send_keys(self.helper.admin.password)
+            send_keys(self.helper.user.password)
         # click on the sign in button to log in
         self.driver.find_element(
             By.XPATH, '//button[text()="Sign in"]').click()
@@ -210,7 +220,7 @@ class TestTutorAcctMgt(unittest.TestCase):
         assert('Sign in ' in self.driver.title), 'Unable to load page'
         # enter the username and password
         self.driver.find_element(By.ID, 'auth_key'). \
-            send_keys(self.helper.user.name)
+            send_keys(self.helper.user.username)
         self.driver.find_element(By.ID, 'password'). \
             send_keys(self.helper.user.password)
         # click on the sign in button to log in
@@ -218,7 +228,7 @@ class TestTutorAcctMgt(unittest.TestCase):
             By.XPATH, '//button[text()="Sign in"]').click()
         # is the logged in user's login visible?
         self.driver.find_element(
-            By.LINK_TEXT, self.helper.user.name).click()
+            By.LINK_TEXT, self.helper.user.username).click()
 
     def test_account_login_failure(self):
         # resize the window to the standard HISD monitor width
@@ -254,9 +264,9 @@ class TestTutorAcctMgt(unittest.TestCase):
         assert(login.is_displayed()), 'Login link not visible'
         login.click()
         self.driver.find_element(By.ID, 'auth_key'). \
-            send_keys(self.helper.teacher.name)
+            send_keys(self.helper.user.username)
         self.driver.find_element(By.ID, 'password'). \
-            send_keys(self.helper.teacher.password)
+            send_keys(self.helper.user.password)
         self.driver.find_element(By.XPATH, '//button[text()="Sign in"]'). \
             click()
         self.wait.until(
@@ -284,10 +294,10 @@ class TestTutorAcctMgt(unittest.TestCase):
         link.click()
         username = self.wait.until(
             expect.visibility_of_element_located(
-                (By.ID, 'forgot_password_username')
+                (By.ID, 'forgot_password_username_or_email')
             )
         )
-        username.send_keys(self.helper.email.name)
+        username.send_keys(self.helper.user.username)
         submit = self.driver.find_element(By.NAME, 'commit')
         submit.click()
         reset_message = self.wait.until(
@@ -306,11 +316,11 @@ class TestTutorAcctMgt(unittest.TestCase):
         self.driver.get('https://mail.google.com/')
         assert('Gmail' in self.driver.title), 'Gmail login not available'
         username = self.driver.find_element(By.ID, 'Email')
-        username.send_keys(self.helper.email.email)
+        username.send_keys(self.teacher.email)
         next_button = self.driver.find_element(By.ID, 'next')
         next_button.click()
         password = self.driver.find_element(By.ID, 'Passwd')
-        password.send_keys(self.helper.email.password)
+        password.send_keys(self.teacher.password)
         stay_signed_in = self.driver.find_element(By.ID, 'PersistentCookie')
         if stay_signed_in.is_selected():
             stay_signed_in.click()
@@ -361,11 +371,11 @@ class TestTutorAcctMgt(unittest.TestCase):
                 (By.XPATH, '//input[@name="reset_password[password]"]')
             )
         )
-        new_password.send_keys(self.helper.email.password)
+        new_password.send_keys(self.teacher.password)
         repeat_password = self.driver.find_element(
             By.ID, 'reset_password_password_confirmation'
         )
-        repeat_password.send_keys(self.helper.email.password)
+        repeat_password.send_keys(self.teacher.password)
         submit = self.driver.find_element(By.NAME, 'commit')
         submit.click()
         reset_message = self.wait.until(
@@ -398,8 +408,8 @@ class TestTutorAcctMgt(unittest.TestCase):
 
     def test_ost_logo_click_user_logged_in(self):
         self.helper.user.login(self.driver,
-                               self.helper.teacher.name,
-                               self.helper.teacher.password)
+                               self.helper.user.username,
+                               self.helper.user.password)
         url = self.helper.user.url
         if url[-1:] == '/':
             url = url[:-1]
@@ -426,8 +436,8 @@ class TestTutorAcctMgt(unittest.TestCase):
 
     def test_user_updates_profile_information(self):
         self.helper.user.login(self.driver,
-                               self.helper.teacher.name,
-                               self.helper.teacher.password,
+                               self.helper.user.username,
+                               self.helper.user.password,
                                'https://accounts-qa.openstax.org/')
         heading = self.wait.until(
             expect.visibility_of_element_located(
@@ -459,8 +469,8 @@ class TestTutorAcctMgt(unittest.TestCase):
 
     def test_user_email_management(self):
         self.helper.user.login(self.driver,
-                               self.helper.teacher.name,
-                               self.helper.teacher.password,
+                               self.helper.user.username,
+                               self.helper.user.password,
                                'https://accounts-qa.openstax.org/')
         heading = self.wait.until(
             expect.visibility_of_element_located(
@@ -476,30 +486,30 @@ class TestTutorAcctMgt(unittest.TestCase):
                                            '//tr/td[contains(text(),"@")]')
         for email in emails:
             print(email.text)
-            if self.helper.email.email in email.text:
+            if self.teacher.email in email.text:
                 print('Removing current e-mail to rerun the test')
                 self.driver.find_element(
                     By.XPATH,
-                    '//input[contains(@data-confirm,"%s")]' %
-                    self.helper.email.email
+                    '//a[contains(@data-confirm,"%s")]' %
+                    self.teacher.email
                 ).click()
                 self.driver.switch_to_alert().accept()
                 print('E-mail cleared')
         self.driver.find_element(By.ID, 'contact_info_value'). \
-            send_keys(self.helper.email.email)
+            send_keys(self.teacher.email)
         self.driver.find_element(
-            By.XPATH, '//input[@value="Add Email address"]'
+            By.XPATH, '//input[@value="Add"]'
         ).click()
         print('Adding e-mail address')
         self.driver.get('https://mail.google.com/')
         assert('Gmail' in self.driver.title), 'Gmail login not available'
         print('Opening Gmail for confirmation e-mail')
         username = self.driver.find_element(By.ID, 'Email')
-        username.send_keys(self.helper.email.email)
+        username.send_keys(self.teacher.email)
         next_button = self.driver.find_element(By.ID, 'next')
         next_button.click()
         password = self.driver.find_element(By.ID, 'Passwd')
-        password.send_keys(self.helper.email.password)
+        password.send_keys(self.teacher.password)
         stay_signed_in = self.driver.find_element(By.ID, 'PersistentCookie')
         if stay_signed_in.is_selected():
             stay_signed_in.click()
@@ -530,11 +540,14 @@ class TestTutorAcctMgt(unittest.TestCase):
         link = confirmation.get_attribute('href')
         print('Save the confirmation URL')
         self.driver.close()
-        self.driver = StaxHelper.run_on(
-            StaxHelper.LOCAL, self.ps, self.desired_capabilities
-        )
+        self.driver = self.helper.run_on(self.ps, self.desired_capabilities)
         self.driver.implicitly_wait(15)
         self.driver.set_window_size(*standard_window)
+        try:
+            if self.wait:
+                self.wait = None
+        except:
+            pass
         self.wait = WebDriverWait(self.driver, 15)
         self.driver.get(link)
         print('Open the confirmation URL')
@@ -545,10 +558,10 @@ class TestTutorAcctMgt(unittest.TestCase):
         )
         assert('Verification' in heading.text), 'Email not verified'
         print('E-mail verified')
-        self.helper.user.login(self.driver,
-                               self.helper.teacher.name,
-                               self.helper.teacher.password,
-                               'https://accounts-qa.openstax.org/')
+        self.teacher.login(self.driver,
+                           self.teacher.username,
+                           self.teacher.password,
+                           'https://accounts-qa.openstax.org/')
         self.wait.until(
             expect.visibility_of_element_located(
                 (By.LINK_TEXT, 'Manage Email Addresses')
