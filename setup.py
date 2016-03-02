@@ -1,4 +1,9 @@
 from setuptools import setup, find_packages
+from pip.req import parse_requirements
+
+install_reqs = parse_requirements('requirements.txt', session=False)
+
+reqs = [str(ir.req) for ir in install_reqs]
 
 setup(
     name='Staxing',
@@ -7,7 +12,7 @@ setup(
     scripts=[],
     # zip_safe=True,
     # eager_resources=[],
-    install_requires=[pastasauce],
+    install_requires=reqs,
     # dependency_links=[],
     # namespace_packages=[],
     include_package_data=True,
@@ -26,7 +31,7 @@ setup(
     description='Stax test base',
     license='Creative Commons Attribution 4.0 International Public License',
     keywords='',
-    url='http://openstax.org',
+	url='https://github.com/gregfitch/staxing',
     long_description=open('README.md').read(),
     # test_suite=''
     # tests_require=[],
