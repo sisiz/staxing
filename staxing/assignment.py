@@ -1,3 +1,5 @@
+"""Assignment helper functions for Selenium testing."""
+
 import random
 import string
 import time
@@ -10,9 +12,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 
 class Assignment(object):
-    '''
-    Shortcut functions to add, edit, and delete assignments
-    '''
+    """Shortcut functions to add, edit, and delete assignments."""
+
     READING = 'reading'
     HOMEWORK = 'homework'
     EXTERNAL = 'external'

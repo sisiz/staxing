@@ -95,6 +95,9 @@ class StaxHelper(object):
             raise IndexError('Unknown dimension: %s' % dimension)
         return get_size[dimension]
 
+    def sleep(self, seconds=1):
+        sleep(seconds)
+
 
 class WebDriverTypeException(WebDriverException):
     def __init__(self, msg, err):
@@ -109,7 +112,8 @@ class User(object):
     ''''''
     DEFAULT_WAIT_TIME = StaxHelper.DEFAULT_WAIT_TIME
 
-    def __init__(self, username=None, password=None, site=None, email=None):
+    def __init__(self, username=None, password=None, site=None, email=None,
+                 email_username=None, email_password=None):
         self.username = username
         self.password = password
         parse = list(urlparse(site if urlparse(site).scheme else
@@ -121,6 +125,8 @@ class User(object):
         parse = ParseResult(*parse)
         self.url = parse.geturl()
         self.email = email
+        self.email_username = email_username
+        self.email_password = email_password
 
     def login(self, driver, username=None, password=None, url=None,
               wait_time=DEFAULT_WAIT_TIME):
@@ -280,7 +286,10 @@ class Teacher(User):
             password = os.environ['TEACHER_PASSWORD']
             site = os.environ['SERVER_URL']
             email = os.environ['TEST_EMAIL_ACCOUNT']
-        super().__init__(username, password, site, email)
+            email_username = os.environ['TEST_EMAIL_USER']
+            email_password = os.environ['TEST_EMAIL_PASSWORD']
+        super().__init__(username, password, site, email, email_username,
+                         email_password)
 
     def add_assignment(self, driver, assignment, args):
         '''
@@ -380,7 +389,10 @@ class Student(User):
             password = os.environ['STUDENT_PASSWORD']
             site = os.environ['SERVER_URL']
             email = os.environ['TEST_EMAIL_ACCOUNT']
-        super().__init__(username, password, site, email)
+            email_username = os.environ['TEST_EMAIL_USER']
+            email_password = os.environ['TEST_EMAIL_PASSWORD']
+        super().__init__(username, password, site, email, email_username,
+                         email_password)
 
     def work_assignment(self):
         '''
@@ -426,7 +438,10 @@ class Admin(User):
             password = os.environ['ADMIN_PASSWORD']
             site = os.environ['SERVER_URL']
             email = os.environ['TEST_EMAIL_ACCOUNT']
-        super().__init__(username, password, site, email)
+            email_username = os.environ['TEST_EMAIL_USER']
+            email_password = os.environ['TEST_EMAIL_PASSWORD']
+        super().__init__(username, password, site, email, email_username,
+                         email_password)
 
     def goto_admin_control(self, driver, wait_time=WebDriverWait):
         '''
@@ -529,7 +544,10 @@ class ContentQA(User):
             password = os.environ['CONTENT_PASSWORD']
             site = os.environ['SERVER_URL']
             email = os.environ['TEST_EMAIL_ACCOUNT']
-        super().__init__(username, password, site, email)
+            email_username = os.environ['TEST_EMAIL_USER']
+            email_password = os.environ['TEST_EMAIL_PASSWORD']
+        super().__init__(username, password, site, email, email_username,
+                         email_password)
 
 # ########################################################################### #
 
