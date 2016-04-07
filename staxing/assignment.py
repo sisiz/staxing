@@ -300,7 +300,7 @@ class Assignment(object):
         """Select the assignment action."""
         if status == self.PUBLISH:
             print('Publishing...')
-            element = driver.find_element(By.CLASS_NAME, 'close-x')
+            element = driver.find_element(By.CLASS_NAME, '-publish')
             Assignment.scroll_to(driver, element)
             time.sleep(1)
             driver.find_element(
