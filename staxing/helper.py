@@ -156,19 +156,11 @@ class Helper(object):
 
     def find(self, by, value):
         """Find element."""
-        try:
-            result = self.driver.find_element(by=by, value=value)
-            return result
-        except:
-            return False
+        return self.driver.find_element(by=by, value=value)
 
     def find_all(self, by, value):
         """Find elements."""
-        try:
-            values = self.driver.find_elements(by=by, value=value)
-            return values
-        except:
-            return False
+        return self.driver.find_elements(by=by, value=value)
 
 
 class WebDriverTypeException(WebDriverException):
