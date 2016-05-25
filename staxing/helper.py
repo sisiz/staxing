@@ -25,7 +25,7 @@ try:
     from staxing.page_load import SeleniumWait as Page
 except ImportError:
     from page_load import SeleniumWait as Page
-__version__ = '0.1.1'
+__version__ = '0.1.2'
 
 
 class Helper(object):
@@ -111,7 +111,7 @@ class Helper(object):
             raise FileNotFoundError(err)
         except Exception as err:
             raise WebDriverTypeException(
-                msg='Unknown WebDriver type: "%s"' % driver,
+                msg='Unknown WebDriver type: "%s" - %s' % (driver_type, err),
                 err=err.__traceback__
             )
 
