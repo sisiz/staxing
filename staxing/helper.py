@@ -25,8 +25,7 @@ try:
     from staxing.page_load import SeleniumWait as Page
 except ImportError:
     from page_load import SeleniumWait as Page
-
-__version__ = '0.1.1'
+__version__ = '0.1.0'
 
 
 class Helper(object):
@@ -414,7 +413,8 @@ class Teacher(User):
     DEFAULT_WAIT_TIME = User.DEFAULT_WAIT_TIME
 
     def __init__(self, username=None, password=None, site=None, email=None,
-                 email_username=None, email_password=None, use_env_vars=False):
+                 email_username=None, email_password=None, use_env_vars=False,
+                 pasta_user=None):
         """Teacher initialization with User pass-through."""
         if use_env_vars:
             username = os.getenv('TEACHER_USER')
@@ -424,7 +424,8 @@ class Teacher(User):
             email_username = os.getenv('TEST_EMAIL_USER')
             email_password = os.getenv('TEST_EMAIL_PASSWORD')
         super(Teacher, self).__init__(username, password, site, email,
-                                      email_username, email_password)
+                                      email_username, email_password,
+                                      pasta_user=pasta_user)
 
     def add_assignment(self, assignment, args):
         """Add an assignment."""
@@ -584,7 +585,8 @@ class Student(User):
     DEFAULT_WAIT_TIME = User.DEFAULT_WAIT_TIME
 
     def __init__(self, username=None, password=None, site=None, email=None,
-                 email_username=None, email_password=None, use_env_vars=False):
+                 email_username=None, email_password=None, use_env_vars=False,
+                 pasta_user=None):
         """Student initialization with User pass-through."""
         if use_env_vars:
             username = os.getenv('STUDENT_USER')
@@ -594,7 +596,8 @@ class Student(User):
             email_username = os.getenv('TEST_EMAIL_USER')
             email_password = os.getenv('TEST_EMAIL_PASSWORD')
         super(Student, self).__init__(username, password, site, email,
-                                      email_username, email_password)
+                                      email_username, email_password,
+                                      pasta_user=pasta_user)
 
     def goto_menu_item(self, item):
         """Go to a specific user menu item."""
@@ -652,7 +655,8 @@ class Admin(User):
     DEFAULT_WAIT_TIME = User.DEFAULT_WAIT_TIME
 
     def __init__(self, username=None, password=None, site=None, email=None,
-                 email_username=None, email_password=None, use_env_vars=False):
+                 email_username=None, email_password=None, use_env_vars=False,
+                 pasta_user=None):
         """Administrator initialization with User pass-through."""
         if use_env_vars:
             username = os.getenv('ADMIN_USER')
@@ -662,7 +666,8 @@ class Admin(User):
             email_username = os.getenv('TEST_EMAIL_USER')
             email_password = os.getenv('TEST_EMAIL_PASSWORD')
         super(Admin, self).__init__(username, password, site, email,
-                                    email_username, email_password)
+                                    email_username, email_password,
+                                    pasta_user=pasta_user)
         self.base = self.url + ('' if self.url[-1] == '/' else '/') + 'admin/'
 
     def goto_admin_control(self):
@@ -741,7 +746,8 @@ class ContentQA(User):
     DEFAULT_WAIT_TIME = User.DEFAULT_WAIT_TIME
 
     def __init__(self, username=None, password=None, site=None, email=None,
-                 email_username=None, email_password=None, use_env_vars=False):
+                 email_username=None, email_password=None, use_env_vars=False,
+                 pasta_user=None):
         """Content analyst initialization with User pass-through."""
         if use_env_vars:
             username = os.getenv('CONTENT_USER')
@@ -751,7 +757,8 @@ class ContentQA(User):
             email_username = os.getenv('TEST_EMAIL_USER')
             email_password = os.getenv('TEST_EMAIL_PASSWORD')
         super(ContentQA, self).__init__(username, password, site, email,
-                                        email_username, email_password)
+                                        email_username, email_password,
+                                        pasta_user=pasta_user)
 
 
 class Webview(object):
