@@ -25,7 +25,8 @@ try:
     from staxing.page_load import SeleniumWait as Page
 except ImportError:
     from page_load import SeleniumWait as Page
-__version__ = '0.1.0'
+
+__version__ = '0.1.1'
 
 
 class Helper(object):
@@ -345,7 +346,7 @@ class User(Helper):
         self.open_user_menu()
         self.wait.until(
             expect.visibility_of_element_located(
-                (By.XPATH, '//button[@aria-label="Sign out"]')
+                (By.XPATH, '//input[@aria-label="Log Out"]')
             )
         ).click()
         self.page.wait_for_page_load()
@@ -416,12 +417,12 @@ class Teacher(User):
                  email_username=None, email_password=None, use_env_vars=False):
         """Teacher initialization with User pass-through."""
         if use_env_vars:
-            username = os.environ['TEACHER_USER']
-            password = os.environ['TEACHER_PASSWORD']
-            site = os.environ['SERVER_URL']
-            email = os.environ['TEST_EMAIL_ACCOUNT']
-            email_username = os.environ['TEST_EMAIL_USER']
-            email_password = os.environ['TEST_EMAIL_PASSWORD']
+            username = os.getenv('TEACHER_USER')
+            password = os.getenv('TEACHER_PASSWORD')
+            site = os.getenv('SERVER_URL')
+            email = os.getenv('TEST_EMAIL_ACCOUNT')
+            email_username = os.getenv('TEST_EMAIL_USER')
+            email_password = os.getenv('TEST_EMAIL_PASSWORD')
         super(Teacher, self).__init__(username, password, site, email,
                                       email_username, email_password)
 
@@ -566,12 +567,14 @@ class Teacher(User):
                 (By.CLASS_NAME, 'show-enrollment-code')
             )
         ).click()
-        return self.wait.until(
+        sleep(1)
+        code = self.wait.until(
             expect.presence_of_element_located(
-                (By.CLASS_NAME, 'code')
+                (By.XPATH, '//p[@class="code"]')
             )
-        ).text
+        )
         print('Exit: get_enrollment_code')
+        return '%s' % code.text.strip()
 
 
 class Student(User):
@@ -584,21 +587,41 @@ class Student(User):
                  email_username=None, email_password=None, use_env_vars=False):
         """Student initialization with User pass-through."""
         if use_env_vars:
-            username = os.environ['STUDENT_USER']
-            password = os.environ['STUDENT_PASSWORD']
-            site = os.environ['SERVER_URL']
-            email = os.environ['TEST_EMAIL_ACCOUNT']
-            email_username = os.environ['TEST_EMAIL_USER']
-            email_password = os.environ['TEST_EMAIL_PASSWORD']
+            username = os.getenv('STUDENT_USER')
+            password = os.getenv('STUDENT_PASSWORD')
+            site = os.getenv('SERVER_URL')
+            email = os.getenv('TEST_EMAIL_ACCOUNT')
+            email_username = os.getenv('TEST_EMAIL_USER')
+            email_password = os.getenv('TEST_EMAIL_PASSWORD')
         super(Student, self).__init__(username, password, site, email,
                                       email_username, email_password)
 
-    def work_assignment(self):
-        """Work an assignment.
+    def goto_menu_item(self, item):
+        """Go to a specific user menu item."""
+        print('Enter: goto_menu_item')
+        if 'courses' in self.driver.current_url:
+            self.open_user_menu()
+            self.wait.until(
+                expect.element_to_be_clickable(
+                    (By.LINK_TEXT, item)
+                )
+            ).click()
+            self.page.wait_for_page_load()
+        print('Exit: goto_menu_item')
 
-        ToDo: all
-        """
-        raise NotImplementedError(inspect.currentframe().f_code.co_name)
+    def goto_dashboard(self):
+        """Go to current work."""
+        self.goto_menu_item('Dashboard')
+
+    def work_assignment(self):
+        """Work an assignment."""
+        if '/courses/' not in self.driver.current_url:
+            self.driver.find_element(By.XPATH, '//a[contains(@class,"na')
+        self.driver.wait.until(
+            expect.element_to_be_clickable(
+                (By.LINK_TEXT, 'All Past Work')
+            )
+        )
 
     def goto_past_work(self):
         """View work for previous weeks.
@@ -632,94 +655,83 @@ class Admin(User):
                  email_username=None, email_password=None, use_env_vars=False):
         """Administrator initialization with User pass-through."""
         if use_env_vars:
-            username = os.environ['ADMIN_USER']
-            password = os.environ['ADMIN_PASSWORD']
-            site = os.environ['SERVER_URL']
-            email = os.environ['TEST_EMAIL_ACCOUNT']
-            email_username = os.environ['TEST_EMAIL_USER']
-            email_password = os.environ['TEST_EMAIL_PASSWORD']
+            username = os.getenv('ADMIN_USER')
+            password = os.getenv('ADMIN_PASSWORD')
+            site = os.getenv('SERVER_URL')
+            email = os.getenv('TEST_EMAIL_ACCOUNT')
+            email_username = os.getenv('TEST_EMAIL_USER')
+            email_password = os.getenv('TEST_EMAIL_PASSWORD')
         super(Admin, self).__init__(username, password, site, email,
                                     email_username, email_password)
+        self.base = self.url + ('' if self.url[-1] == '/' else '/') + 'admin/'
 
     def goto_admin_control(self):
         """Access the administrator controls."""
-        self.wait.until(
-            expect.visibility_of_element_located(
-                (
-                    By.XPATH, '%s%s' %
-                    ('//li[contains(@class,"-hamburger-menu")]/',
-                     'a[@type="button"]')
-                )
-            )
-        ).click()
-        self.wait.until(
-            expect.visibility_of_element_located(
-                (By.LINK_TEXT, 'Admin')
-            )
-        ).click()
-        self.wait.until(
-            expect.visibility_of_element_located(
-                (By.XPATH, '//h1[text()="Admin Console"]')
-            )
-        )
+        self.get('%s%s' % (self.base, 'admin'))
 
-    def goto_courses(self):
-        """Access the course admin control."""
-        try:
-            self.wait.until(
-                expect.visibility_of_element_located(
-                    (By.XPATH, '//h1[text()="Admin Console"]')
-                )
-            )
-        except:
-            self.goto_admin_control()
-        organization = self.wait.until(
-            expect.element_to_be_clickable(
-                (By.PARTIAL_LINK_TEXT, 'Course Organization')
-            )
-        )
-        if 'open' not in organization.find_element(By.XPATH, '..'). \
-                get_attribute('class'):
-            organization.click()
-        self.wait.until(
-            expect.element_to_be_clickable(
-                (By.LINK_TEXT, 'Courses')
-            )
-        ).click()
-        self.wait.until(
-            expect.visibility_of_element_located(
-                (By.XPATH, '//h1[text()="Courses"]')
-            )
-        )
+    def goto_catalog_offerings(self):
+        """Access the catalog."""
+        self.get('%s%s' % (self.base, 'catalog_offerings'))
+
+    def goto_course_list(self):
+        """Access the course list."""
+        self.get('%s%s' % (self.base, 'courses'))
+
+    def goto_school_list(self):
+        """Access the school list."""
+        self.get('%s%s' % (self.base, 'school'))
+
+    def goto_district_list(self):
+        """Access the district list."""
+        self.get('%s%s' % (self.base, 'districts'))
+
+    def goto_tag_list(self):
+        """Access the tag list."""
+        self.get('%s%s' % (self.base, 'tags'))
 
     def goto_ecosystems(self):
-        """Access the ecosystem admin control."""
-        try:
-            self.wait.until(
-                expect.visibility_of_element_located(
-                    (By.XPATH, '//h1[text()="Admin Console"]')
-                )
-            )
-        except:
-            self.goto_admin_control()
-        content = self.wait.until(
-            expect.element_to_be_clickable(
-                (By.PARTIAL_LINK_TEXT, 'Content')
-            )
-        )
-        if 'open' not in content.find_element(By.XPATH, '..'). \
-                get_attribute('class'):
-            content.click()
-        self.wait.until(
-            expect.element_to_be_clickable(
-                (By.LINK_TEXT, 'Ecosystems')
-            )
-        ).click()
-        self.wait.until(
-            expect.visibility_of_element_located(
-                (By.XPATH, '//h1[text()="Ecosystems"]')
-            )
-        )
+        """Access the ecosystem list."""
+        self.get('%s%s' % (self.base, 'ecosystems'))
+
+    def goto_terms_and_contracts(self):
+        """Access the terms and contracts list."""
+        self.get('%s%s' % (self.base[:-6], 'fine_print'))
+
+    def goto_contracts(self):
+        """Access the targeted contracts."""
+        self.get('%s%s' % (self.base, 'targeted_contracts'))
+
+    def goto_course_stats(self):
+        """Access the course stats."""
+        self.get('%s%s' % (self.base, 'stats/courses'))
+
+    def goto_concept_coach_stats(self):
+        """Access the Concept Coach stats."""
+        self.get('%s%s' % (self.base, 'stats/concept_coach'))
+
+    def goto_user_list(self):
+        """Access the user list."""
+        self.get('%s%s' % (self.base, 'users'))
+
+    def goto_jobs(self):
+        """Access the jobs list."""
+        self.get('%s%s' % (self.base, 'jobs'))
+
+    def goto_research_data(self):
+        """Access the researcher data."""
+        self.get('%s%s' % (self.base, 'research_data'))
+
+    def goto_salesforce_control(self):
+        """Access the Salesforce controls."""
+        self.get('%s%s' % (self.base, 'salesforce'))
+
+    def goto_system_settings(self):
+        """Access the system settings."""
+        self.get('%s%s' % (self.base, 'settings'))
+
+    def goto_system_notifications(self):
+        """Access the system notifications."""
+        self.get('%s%s' % (self.base, 'notifications'))
 
 
 class ContentQA(User):
@@ -732,14 +744,40 @@ class ContentQA(User):
                  email_username=None, email_password=None, use_env_vars=False):
         """Content analyst initialization with User pass-through."""
         if use_env_vars:
-            username = os.environ['CONTENT_USER']
-            password = os.environ['CONTENT_PASSWORD']
-            site = os.environ['SERVER_URL']
-            email = os.environ['TEST_EMAIL_ACCOUNT']
-            email_username = os.environ['TEST_EMAIL_USER']
-            email_password = os.environ['TEST_EMAIL_PASSWORD']
+            username = os.getenv('CONTENT_USER')
+            password = os.getenv('CONTENT_PASSWORD')
+            site = os.getenv('SERVER_URL')
+            email = os.getenv('TEST_EMAIL_ACCOUNT')
+            email_username = os.getenv('TEST_EMAIL_USER')
+            email_password = os.getenv('TEST_EMAIL_PASSWORD')
         super(ContentQA, self).__init__(username, password, site, email,
                                         email_username, email_password)
+
+
+class Webview(object):
+    """Webview navigation and control."""
+
+    def __init__(self, driver, wait_time=30, site='https://demo.cnx.org/'):
+        """Webview constructor."""
+        self.driver = driver
+        self.wait = WebDriverWait(driver, wait_time)
+        self.site = site
+
+    def goto_section(self, section_name=None, section_number=None):
+        """Go to a specific page module."""
+        # TODO
+
+    def next(self):
+        """Go to the next page module."""
+        # TODO
+
+    def previous(self):
+        """Go to the previous page module."""
+        # TODO
+
+    def goto_concept_coach(self):
+        """Go to the Concept Coach widget."""
+        # TODO
 
 
 if __name__ == '__main__':

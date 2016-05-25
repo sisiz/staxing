@@ -360,11 +360,12 @@ class Assignment(object):
                 chapter = driver.find_element(
                     By.XPATH,
                     '//h2[@data-chapter-section="%s"]' % section[2:] +
-                    '//input[contains(@id,"chapter-checkbox-")]'
+                    '//span[contains(@class,"chapter-checkbox")]'
                 )
                 time.sleep(0.5)
-                if not chapter.is_selected():
-                    chapter.click()
+                checkbox = chapter.find_element(By.XPATH, './span')
+                if 'unchecked' in checkbox.get_attribute('class'):
+                    checkbox.click()
             elif 'tutor' in section:
                 continue
             else:  # select an individual section
