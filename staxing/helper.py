@@ -25,7 +25,7 @@ try:
     from staxing.page_load import SeleniumWait as Page
 except ImportError:
     from page_load import SeleniumWait as Page
-__version__ = '0.1.0'
+__version__ = '0.1.1'
 
 
 class Helper(object):
@@ -42,7 +42,8 @@ class Helper(object):
             raise TypeError('A Sauce Labs user is required for remote testing')
         self.pasta = pasta_user
         self.opera_driver = opera_driver
-        self.driver = self.run_on(driver_type=driver_type,
+        driver = driver_type if not pasta_user else 'saucelabs'
+        self.driver = self.run_on(driver_type=driver,
                                   pasta_user=self.pasta,
                                   capabilities=capabilities)
         self.driver.implicitly_wait(wait_time)
