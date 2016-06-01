@@ -6,6 +6,7 @@ import os
 import re
 
 from builtins import FileNotFoundError
+# from pastasauce import PastaSauce
 from requests import HTTPError
 from selenium import webdriver
 from selenium.common.exceptions import WebDriverException
@@ -34,19 +35,27 @@ class Helper(object):
     CONDENSED_WIDTH = 767  # pixels wide
     DEFAULT_WAIT_TIME = 15  # seconds
 
-    def __init__(self, driver_type='chrome', capabilities=None,
-                 pasta_user=None, wait_time=DEFAULT_WAIT_TIME,
-                 opera_driver=''):
+    def __init__(self,
+                 driver_type='chrome',
+                 capabilities=DesiredCapabilities.CHROME.copy(),
+                 pasta_user=None,
+                 wait_time=DEFAULT_WAIT_TIME,
+                 opera_driver='',
+                 existing_driver=None,
+                 **kwargs):
         """Class constructor."""
         if driver_type == 'saucelabs' and pasta_user is None:
             raise TypeError('A Sauce Labs user is required for remote testing')
         self.pasta = pasta_user
         self.opera_driver = opera_driver
-        driver = driver_type if not pasta_user else 'saucelabs'
-        self.driver = self.run_on(driver_type=driver,
-                                  pasta_user=self.pasta,
-                                  capabilities=capabilities)
-        self.driver.implicitly_wait(wait_time)
+        if existing_driver:
+            self.driver = existing_driver
+        else:
+            driver = driver_type if not pasta_user else 'saucelabs'
+            self.driver = self.run_on(driver_type=driver,
+                                      pasta_user=self.pasta,
+                                      capabilities=capabilities)
+            self.driver.implicitly_wait(wait_time)
         self.wait = WebDriverWait(self.driver, wait_time)
         self.wait_time = wait_time
         self.page = Page(self.driver, self.wait_time)
@@ -57,9 +66,10 @@ class Helper(object):
 
     def delete(self):
         """Webdriver destructor."""
-        self.wait = None
+        # self.wait = None
         try:
-            self.driver.quit()
+            # self.driver.quit()
+            pass
         except:
             pass
 
@@ -90,8 +100,9 @@ class Helper(object):
         wait (int): standard time, in seconds, to wait for Selenium commands
         opera_driver (string): Chromium location
         """
-        driver = driver_type if driver_type is not None else 'chrome'
-        pasta = pasta_user if pasta_user is not None else self.pasta
+        driver = driver_type if driver_type else 'chrome'
+        pasta = pasta_user if pasta_user else self.pasta
+        driver = 'saucelabs' if pasta_user else driver
         try:
             return {
                 'firefox': lambda: webdriver.Firefox(),
@@ -104,16 +115,17 @@ class Helper(object):
                     command_executor=(
                         'http://%s:%s@ondemand.saucelabs.com:80/wd/hub' %
                         (pasta.get_user(), pasta.get_access_key())),
-                    desired_capabilities=self.capabilities
+                    desired_capabilities=capabilities
                 ),
             }[driver]()
         except WebDriverException as err:
             raise FileNotFoundError(err)
         except Exception as err:
-            raise WebDriverTypeException(
-                msg='Unknown WebDriver type: "%s" - %s' % (driver_type, err),
-                err=err.__traceback__
-            )
+            raise err
+            # raise WebDriverTypeException(
+            #    msg='Unknown WebDriver type: "%s" - %s' % (driver, err),
+            #    err=err.__traceback__
+            # )
 
     def start_opera(self, location):
         """Opera initiator."""
@@ -151,6 +163,21 @@ class Helper(object):
             raise IndexError('Unknown dimension: %s' % dimension)
         return get_size[dimension]
 
+    def set_window_size(self, width=0, height=0, maximize=False):
+        """Attempt to change the browser window size."""
+        if maximize:
+            self.driver.maximize_window()
+        elif width >= 1 and height >= 1:
+            self.driver.set_window_size(width, height)
+            sleep(1.0)
+        return self.get_window_size()
+
+    def set_window_position(self, x_=0, y_=0):
+        """Move the browser window anchor."""
+        if x_ >= 0 and y_ >= 0:
+            self.driver.set_window_position(x_, y_)
+            sleep(1.0)
+
     def sleep(self, seconds=1):
         """Stop execution for the specified time in seconds."""
         sleep(seconds)
@@ -172,9 +199,16 @@ class WebDriverTypeException(WebDriverException):
         self.msg = msg
         self.__traceback__ = err
 
+    def __repr__(self):
+        """Return __str__ print."""
+        return self.__str__()
+
     def __str__(self):
         """String representation of the exception."""
-        return repr(self.msg, self.__traceback__)
+        try:
+            return str(self.msg).join(str(self.__traceback__))
+        except Exception as e:
+            return str(type(e)).join(str(e))
 
 
 class User(Helper):
@@ -183,12 +217,20 @@ class User(Helper):
     CONDENSED_WIDTH = Helper.CONDENSED_WIDTH
     DEFAULT_WAIT_TIME = Helper.DEFAULT_WAIT_TIME
 
-    def __init__(self, username, password, site, email=None,
-                 email_username=None, email_password=None,
+    def __init__(self,
+                 username,
+                 password,
+                 site='https://tutor-qa.openstax.org',
+                 email=None,
+                 email_username=None,
+                 email_password=None,
                  driver_type='chrome',
                  capabilities=DesiredCapabilities.CHROME.copy(),
-                 pasta_user=None, wait_time=DEFAULT_WAIT_TIME,
-                 opera_driver='', **kwargs):
+                 pasta_user=None,
+                 wait_time=DEFAULT_WAIT_TIME,
+                 opera_driver='',
+                 existing_driver=None,
+                 **kwargs):
         """
         Base user constructor.
 
@@ -240,7 +282,9 @@ class User(Helper):
                                    capabilities=capabilities,
                                    pasta_user=pasta_user,
                                    wait_time=wait_time,
-                                   opera_driver=opera_driver)
+                                   opera_driver=opera_driver,
+                                   existing_driver=existing_driver,
+                                   kwargs=kwargs)
 
     def login(self, url=None, username=None, password=None):
         """
@@ -253,9 +297,9 @@ class User(Helper):
         password (string): website password
         url (string): website URL
         """
-        username = self.username if username is None else username
-        password = self.password if password is None else password
-        url_address = self.url if url is None else url
+        username = self.username if not username else username
+        password = self.password if not password else password
+        url_address = self.url if not url else url
         # open the URL
         self.get(url_address)
         self.page.wait_for_page_load()
@@ -277,16 +321,14 @@ class User(Helper):
             ).click()
             self.page.wait_for_page_load()
         src = self.driver.page_source
-        text_located = re.search(r'openstax', src.lower()) is not None
+        text_located = re.search(r'openstax', src.lower())
         self.sleep(1)
         if not text_located:
             raise self.LoginError('Non-OpenStax URL: %s' %
                                   self.driver.current_url)
         # enter the username and password
-        self.driver.find_element(By.ID, 'auth_key'). \
-            send_keys(self.username if username is None else username)
-        self.driver.find_element(By.ID, 'password'). \
-            send_keys(self.password if password is None else password)
+        self.driver.find_element(By.ID, 'auth_key').send_keys(username)
+        self.driver.find_element(By.ID, 'password').send_keys(password)
         # click on the sign in button
         self.driver.find_element(
             By.XPATH, '//button[text()="Sign in"]'
@@ -300,6 +342,8 @@ class User(Helper):
             self.tutor_logout()
         elif 'accounts' in url_address:
             self.accounts_logout()
+        elif 'exercises' in url_address:
+            self.exercises_logout()
         else:
             raise HTTPError('Not an OpenStax URL')
 
@@ -341,7 +385,7 @@ class User(Helper):
             )
         ).click()
 
-    def tutor_logout(self):
+    def tutor_logout(self):  # NOQA
         """Tutor logout helper."""
         self.open_user_menu()
         self.wait.until(
@@ -351,10 +395,14 @@ class User(Helper):
         ).click()
         self.page.wait_for_page_load()
 
-    def accounts_logout(self):
+    def accounts_logout(self):  # NOQA
         """OS Accounts logout helper."""
         self.driver.find_element(By.LINK_TEXT, 'Sign out').click()
         self.page.wait_for_page_load()
+
+    def execises_logout(self):  # NOQA
+        """Exercises logout helper."""
+        raise NotImplementedError(inspect.currentframe().f_code.co_name)
 
     def select_course(self, title=None, appearance=None):
         """Select course."""
@@ -413,20 +461,20 @@ class Teacher(User):
     CONDENSED_WIDTH = User.CONDENSED_WIDTH
     DEFAULT_WAIT_TIME = User.DEFAULT_WAIT_TIME
 
-    def __init__(self, username=None, password=None, site=None, email=None,
-                 email_username=None, email_password=None, use_env_vars=False,
-                 pasta_user=None):
+    def __init__(self,
+                 use_env_vars=False,
+                 existing_driver=None,
+                 kwargs=None):
         """Teacher initialization with User pass-through."""
         if use_env_vars:
-            username = os.getenv('TEACHER_USER')
-            password = os.getenv('TEACHER_PASSWORD')
-            site = os.getenv('SERVER_URL')
-            email = os.getenv('TEST_EMAIL_ACCOUNT')
-            email_username = os.getenv('TEST_EMAIL_USER')
-            email_password = os.getenv('TEST_EMAIL_PASSWORD')
-        super(Teacher, self).__init__(username, password, site, email,
-                                      email_username, email_password,
-                                      pasta_user=pasta_user)
+            kwargs['username'] = os.getenv('TEACHER_USER')
+            kwargs['password'] = os.getenv('TEACHER_PASSWORD')
+            kwargs['site'] = os.getenv('SERVER_URL')
+            kwargs['email'] = os.getenv('TEST_EMAIL_ACCOUNT')
+            kwargs['email_username'] = os.getenv('TEST_EMAIL_USER')
+            kwargs['email_password'] = os.getenv('TEST_EMAIL_PASSWORD')
+        super(Teacher, self).__init__(existing_driver=existing_driver,
+                                      **kwargs)
 
     def add_assignment(self, assignment, args):
         """Add an assignment."""
@@ -585,20 +633,20 @@ class Student(User):
     CONDENSED_WIDTH = User.CONDENSED_WIDTH
     DEFAULT_WAIT_TIME = User.DEFAULT_WAIT_TIME
 
-    def __init__(self, username=None, password=None, site=None, email=None,
-                 email_username=None, email_password=None, use_env_vars=False,
-                 pasta_user=None):
+    def __init__(self,
+                 use_env_vars=False,
+                 existing_driver=None,
+                 kwargs=None):
         """Student initialization with User pass-through."""
         if use_env_vars:
-            username = os.getenv('STUDENT_USER')
-            password = os.getenv('STUDENT_PASSWORD')
-            site = os.getenv('SERVER_URL')
-            email = os.getenv('TEST_EMAIL_ACCOUNT')
-            email_username = os.getenv('TEST_EMAIL_USER')
-            email_password = os.getenv('TEST_EMAIL_PASSWORD')
-        super(Student, self).__init__(username, password, site, email,
-                                      email_username, email_password,
-                                      pasta_user=pasta_user)
+            kwargs['username'] = os.getenv('STUDENT_USER')
+            kwargs['password'] = os.getenv('STUDENT_PASSWORD')
+            kwargs['site'] = os.getenv('SERVER_URL')
+            kwargs['email'] = os.getenv('TEST_EMAIL_ACCOUNT')
+            kwargs['email_username'] = os.getenv('TEST_EMAIL_USER')
+            kwargs['email_password'] = os.getenv('TEST_EMAIL_PASSWORD')
+        super(Student, self).__init__(existing_driver=existing_driver,
+                                      **kwargs)
 
     def goto_menu_item(self, item):
         """Go to a specific user menu item."""
@@ -655,20 +703,17 @@ class Admin(User):
     CONDENSED_WIDTH = User.CONDENSED_WIDTH
     DEFAULT_WAIT_TIME = User.DEFAULT_WAIT_TIME
 
-    def __init__(self, username=None, password=None, site=None, email=None,
-                 email_username=None, email_password=None, use_env_vars=False,
-                 pasta_user=None):
+    def __init__(self, use_env_vars=False, existing_driver=None, **kwargs):
         """Administrator initialization with User pass-through."""
         if use_env_vars:
-            username = os.getenv('ADMIN_USER')
-            password = os.getenv('ADMIN_PASSWORD')
-            site = os.getenv('SERVER_URL')
-            email = os.getenv('TEST_EMAIL_ACCOUNT')
-            email_username = os.getenv('TEST_EMAIL_USER')
-            email_password = os.getenv('TEST_EMAIL_PASSWORD')
-        super(Admin, self).__init__(username, password, site, email,
-                                    email_username, email_password,
-                                    pasta_user=pasta_user)
+            kwargs['username'] = os.getenv('ADMIN_USER')
+            kwargs['password'] = os.getenv('ADMIN_PASSWORD')
+            kwargs['site'] = os.getenv('SERVER_URL')
+            kwargs['email'] = os.getenv('TEST_EMAIL_ACCOUNT')
+            kwargs['email_username'] = os.getenv('TEST_EMAIL_USER')
+            kwargs['email_password'] = os.getenv('TEST_EMAIL_PASSWORD')
+        super(Admin, self).__init__(existing_driver=existing_driver,
+                                    **kwargs)
         self.base = self.url + ('' if self.url[-1] == '/' else '/') + 'admin/'
 
     def goto_admin_control(self):
@@ -746,20 +791,17 @@ class ContentQA(User):
     CONDENSED_WIDTH = User.CONDENSED_WIDTH
     DEFAULT_WAIT_TIME = User.DEFAULT_WAIT_TIME
 
-    def __init__(self, username=None, password=None, site=None, email=None,
-                 email_username=None, email_password=None, use_env_vars=False,
-                 pasta_user=None):
+    def __init__(self, use_env_vars=False, existing_driver=None, **kwargs):
         """Content analyst initialization with User pass-through."""
         if use_env_vars:
-            username = os.getenv('CONTENT_USER')
-            password = os.getenv('CONTENT_PASSWORD')
-            site = os.getenv('SERVER_URL')
-            email = os.getenv('TEST_EMAIL_ACCOUNT')
-            email_username = os.getenv('TEST_EMAIL_USER')
-            email_password = os.getenv('TEST_EMAIL_PASSWORD')
-        super(ContentQA, self).__init__(username, password, site, email,
-                                        email_username, email_password,
-                                        pasta_user=pasta_user)
+            kwargs['username'] = os.getenv('CONTENT_USER')
+            kwargs['password'] = os.getenv('CONTENT_PASSWORD')
+            kwargs['site'] = os.getenv('SERVER_URL')
+            kwargs['email'] = os.getenv('TEST_EMAIL_ACCOUNT')
+            kwargs['email_username'] = os.getenv('TEST_EMAIL_USER')
+            kwargs['email_password'] = os.getenv('TEST_EMAIL_PASSWORD')
+        super(ContentQA, self).__init__(existing_driver=existing_driver,
+                                        **kwargs)
 
 
 class Webview(object):
@@ -773,19 +815,19 @@ class Webview(object):
 
     def goto_section(self, section_name=None, section_number=None):
         """Go to a specific page module."""
-        # TODO
+        raise NotImplementedError(inspect.currentframe().f_code.co_name)
 
     def next(self):
         """Go to the next page module."""
-        # TODO
+        raise NotImplementedError(inspect.currentframe().f_code.co_name)
 
     def previous(self):
         """Go to the previous page module."""
-        # TODO
+        raise NotImplementedError(inspect.currentframe().f_code.co_name)
 
     def goto_concept_coach(self):
         """Go to the Concept Coach widget."""
-        # TODO
+        raise NotImplementedError(inspect.currentframe().f_code.co_name)
 
 
 if __name__ == '__main__':
