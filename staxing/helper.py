@@ -26,7 +26,7 @@ try:
     from staxing.page_load import SeleniumWait as Page
 except ImportError:
     from page_load import SeleniumWait as Page
-__version__ = '0.1.13'
+__version__ = '0.1.14'
 
 
 class Helper(object):
@@ -646,7 +646,7 @@ class Student(User):
     def __init__(self,
                  use_env_vars=False,
                  existing_driver=None,
-                 kwargs=None):
+                 **kwargs):
         """Student initialization with User pass-through."""
         if use_env_vars:
             if not kwargs:
