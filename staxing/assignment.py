@@ -7,6 +7,7 @@ import inspect
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as expect
 from selenium.webdriver.support.ui import WebDriverWait
 
@@ -256,18 +257,33 @@ class Assignment(object):
         # assign the same dates for all periods
         if 'all' in periods:
             opens_on, closes_on = periods['all']
-            open_xpath = '//div[contains(@class,"-assignment-open-date")]' + \
-                         '//input[@class="datepicker__input"]'
-            close_xpath = '//div[contains(@class,"-assignment-due-date")]' + \
-                          '//input[@class="datepicker__input"]'
-            driver.find_element(By.XPATH, close_xpath).clear()
+            open_xpath = '//div[contains(@class,"-assignment-open-date")]' \
+                + '//div[contains(@class,"datepicker__input")]' \
+                + '/input'
+            close_xpath = '//div[contains(@class,"-assignment-due-date")]' \
+                + '//div[contains(@class,"datepicker__input")]' \
+                + '/input'
+            wait = WebDriverWait(driver, self.WAIT_TIME)
+            wait.until(
+                expect.element_to_be_clickable(
+                    (By.CLASS_NAME, 'assign-to-label')
+                )
+            ).click()
+            wait.until(
+                expect.element_to_be_clickable(
+                    (By.XPATH, close_xpath)
+                )
+            ).clear()
             driver.find_element(By.XPATH, close_xpath).send_keys(closes_on)
-            time.sleep(0.5)
-            driver.find_element(By.CLASS_NAME, 'assign-to-label').click()
-            driver.find_element(By.XPATH, open_xpath).clear()
+            wait.until(
+                expect.element_to_be_clickable(
+                    (By.XPATH, open_xpath)
+                )
+            ).clear()
             driver.find_element(By.XPATH, open_xpath).send_keys(opens_on)
-            time.sleep(0.5)
-            driver.find_element(By.CLASS_NAME, 'assign-to-label').click()
+            time.sleep(1)
+            driver.find_element(By.ID, 'reading-title') \
+                .send_keys(Keys.NULL)
             return
         # or set the dates for each period: {period: (open, close)}
         count = 0

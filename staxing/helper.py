@@ -26,7 +26,7 @@ try:
     from staxing.page_load import SeleniumWait as Page
 except ImportError:
     from page_load import SeleniumWait as Page
-__version__ = '0.1.2'
+__version__ = '0.1.12'
 
 
 class Helper(object):
@@ -59,17 +59,25 @@ class Helper(object):
         self.wait = WebDriverWait(self.driver, wait_time)
         self.wait_time = wait_time
         self.page = Page(self.driver, self.wait_time)
+        super(Helper, self).__init__(**kwargs)
+
+    def __enter__(self):
+        """Entry point."""
+        return self
 
     def __del__(self):
         """Class destructor."""
         self.delete()
 
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Class exitor."""
+        self.delete()
+
     def delete(self):
         """Webdriver destructor."""
-        # self.wait = None
+        self.wait = None
         try:
-            # self.driver.quit()
-            pass
+            self.driver.quit()
         except:
             pass
 
@@ -284,7 +292,7 @@ class User(Helper):
                                    wait_time=wait_time,
                                    opera_driver=opera_driver,
                                    existing_driver=existing_driver,
-                                   kwargs=kwargs)
+                                   **kwargs)
 
     def login(self, url=None, username=None, password=None):
         """
@@ -464,9 +472,11 @@ class Teacher(User):
     def __init__(self,
                  use_env_vars=False,
                  existing_driver=None,
-                 kwargs=None):
+                 **kwargs):
         """Teacher initialization with User pass-through."""
         if use_env_vars:
+            if not kwargs:
+                kwargs = {}
             kwargs['username'] = os.getenv('TEACHER_USER')
             kwargs['password'] = os.getenv('TEACHER_PASSWORD')
             kwargs['site'] = os.getenv('SERVER_URL')
@@ -639,6 +649,8 @@ class Student(User):
                  kwargs=None):
         """Student initialization with User pass-through."""
         if use_env_vars:
+            if not kwargs:
+                kwargs = {}
             kwargs['username'] = os.getenv('STUDENT_USER')
             kwargs['password'] = os.getenv('STUDENT_PASSWORD')
             kwargs['site'] = os.getenv('SERVER_URL')
@@ -706,6 +718,8 @@ class Admin(User):
     def __init__(self, use_env_vars=False, existing_driver=None, **kwargs):
         """Administrator initialization with User pass-through."""
         if use_env_vars:
+            if not kwargs:
+                kwargs = {}
             kwargs['username'] = os.getenv('ADMIN_USER')
             kwargs['password'] = os.getenv('ADMIN_PASSWORD')
             kwargs['site'] = os.getenv('SERVER_URL')
@@ -714,75 +728,76 @@ class Admin(User):
             kwargs['email_password'] = os.getenv('TEST_EMAIL_PASSWORD')
         super(Admin, self).__init__(existing_driver=existing_driver,
                                     **kwargs)
-        self.base = self.url + ('' if self.url[-1] == '/' else '/') + 'admin/'
+        extension = '' if self.url.endswith('/') else '/'
+        self.base = self.url + extension + 'admin'
 
     def goto_admin_control(self):
         """Access the administrator controls."""
-        self.get('%s%s' % (self.base, 'admin'))
+        self.get('%s' % self.base)
 
     def goto_catalog_offerings(self):
         """Access the catalog."""
-        self.get('%s%s' % (self.base, 'catalog_offerings'))
+        self.get('%s%s' % (self.base, '/catalog_offerings'))
 
     def goto_course_list(self):
         """Access the course list."""
-        self.get('%s%s' % (self.base, 'courses'))
+        self.get('%s%s' % (self.base, '/courses'))
 
     def goto_school_list(self):
         """Access the school list."""
-        self.get('%s%s' % (self.base, 'school'))
+        self.get('%s%s' % (self.base, '/school'))
 
     def goto_district_list(self):
         """Access the district list."""
-        self.get('%s%s' % (self.base, 'districts'))
+        self.get('%s%s' % (self.base, '/districts'))
 
     def goto_tag_list(self):
         """Access the tag list."""
-        self.get('%s%s' % (self.base, 'tags'))
+        self.get('%s%s' % (self.base, '/tags'))
 
     def goto_ecosystems(self):
         """Access the ecosystem list."""
-        self.get('%s%s' % (self.base, 'ecosystems'))
+        self.get('%s%s' % (self.base, '/ecosystems'))
 
     def goto_terms_and_contracts(self):
         """Access the terms and contracts list."""
-        self.get('%s%s' % (self.base[:-6], 'fine_print'))
+        self.get('%s%s' % (self.url, '/fine_print'))
 
     def goto_contracts(self):
         """Access the targeted contracts."""
-        self.get('%s%s' % (self.base, 'targeted_contracts'))
+        self.get('%s%s' % (self.base, '/targeted_contracts'))
 
     def goto_course_stats(self):
         """Access the course stats."""
-        self.get('%s%s' % (self.base, 'stats/courses'))
+        self.get('%s%s' % (self.base, '/stats/courses'))
 
     def goto_concept_coach_stats(self):
         """Access the Concept Coach stats."""
-        self.get('%s%s' % (self.base, 'stats/concept_coach'))
+        self.get('%s%s' % (self.base, '/stats/concept_coach'))
 
     def goto_user_list(self):
         """Access the user list."""
-        self.get('%s%s' % (self.base, 'users'))
+        self.get('%s%s' % (self.base, '/users'))
 
     def goto_jobs(self):
         """Access the jobs list."""
-        self.get('%s%s' % (self.base, 'jobs'))
+        self.get('%s%s' % (self.base, '/jobs'))
 
     def goto_research_data(self):
         """Access the researcher data."""
-        self.get('%s%s' % (self.base, 'research_data'))
+        self.get('%s%s' % (self.base, '/research_data'))
 
     def goto_salesforce_control(self):
         """Access the Salesforce controls."""
-        self.get('%s%s' % (self.base, 'salesforce'))
+        self.get('%s%s' % (self.base, '/salesforce'))
 
     def goto_system_settings(self):
         """Access the system settings."""
-        self.get('%s%s' % (self.base, 'settings'))
+        self.get('%s%s' % (self.base, '/settings'))
 
     def goto_system_notifications(self):
         """Access the system notifications."""
-        self.get('%s%s' % (self.base, 'notifications'))
+        self.get('%s%s' % (self.base, '/notifications'))
 
 
 class ContentQA(User):
@@ -794,6 +809,8 @@ class ContentQA(User):
     def __init__(self, use_env_vars=False, existing_driver=None, **kwargs):
         """Content analyst initialization with User pass-through."""
         if use_env_vars:
+            if not kwargs:
+                kwargs = {}
             kwargs['username'] = os.getenv('CONTENT_USER')
             kwargs['password'] = os.getenv('CONTENT_PASSWORD')
             kwargs['site'] = os.getenv('SERVER_URL')
