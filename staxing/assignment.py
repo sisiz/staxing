@@ -11,6 +11,8 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as expect
 from selenium.webdriver.support.ui import WebDriverWait
 
+__version__ = '0.1.2'
+
 
 class Assignment(object):
     """Shortcut functions to add, edit, and delete assignments."""

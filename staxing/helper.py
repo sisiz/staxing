@@ -26,7 +26,7 @@ try:
     from staxing.page_load import SeleniumWait as Page
 except ImportError:
     from page_load import SeleniumWait as Page
-__version__ = '0.1.12'
+__version__ = '0.1.13'
 
 
 class Helper(object):
@@ -680,12 +680,13 @@ class Student(User):
     def work_assignment(self):
         """Work an assignment."""
         if '/courses/' not in self.driver.current_url:
-            self.driver.find_element(By.XPATH, '//a[contains(@class,"na')
+            self.driver.find_element(By.XPATH, '//a[contains(@class,"na")]')
         self.driver.wait.until(
             expect.element_to_be_clickable(
                 (By.LINK_TEXT, 'All Past Work')
             )
         )
+        raise NotImplementedError(inspect.currentframe().f_code.co_name)
 
     def goto_past_work(self):
         """View work for previous weeks.
