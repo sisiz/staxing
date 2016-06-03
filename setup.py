@@ -9,7 +9,7 @@ reqs = [str(ir.req) for ir in install_reqs]
 
 setup(
     name='Staxing',
-    version='0.0.15',
+    version='0.0.16',
     packages=find_packages(),
     scripts=[],
     # zip_safe=True,

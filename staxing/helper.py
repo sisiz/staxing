@@ -26,7 +26,7 @@ try:
     from staxing.page_load import SeleniumWait as Page
 except ImportError:
     from page_load import SeleniumWait as Page
-__version__ = '0.1.15'
+__version__ = '0.1.16'
 
 
 class Helper(object):
@@ -37,7 +37,7 @@ class Helper(object):
 
     def __init__(self,
                  driver_type='chrome',
-                 capabilities=DesiredCapabilities.CHROME.copy(),
+                 capabilities=None,
                  pasta_user=None,
                  wait_time=DEFAULT_WAIT_TIME,
                  opera_driver='',
@@ -108,9 +108,12 @@ class Helper(object):
         wait (int): standard time, in seconds, to wait for Selenium commands
         opera_driver (string): Chromium location
         """
-        driver = driver_type if driver_type else 'chrome'
-        pasta = pasta_user if pasta_user else self.pasta
-        driver = 'saucelabs' if pasta_user else driver
+        if pasta_user:
+            driver = 'saucelabs'
+        elif driver_type:
+            driver = driver_type
+        else:
+            driver = 'chrome'
         try:
             return {
                 'firefox': lambda: webdriver.Firefox(),
@@ -122,7 +125,7 @@ class Helper(object):
                 'saucelabs': lambda: webdriver.Remote(
                     command_executor=(
                         'http://%s:%s@ondemand.saucelabs.com:80/wd/hub' %
-                        (pasta.get_user(), pasta.get_access_key())),
+                        (pasta_user.get_user(), pasta_user.get_access_key())),
                     desired_capabilities=capabilities
                 ),
             }[driver]()
@@ -233,7 +236,7 @@ class User(Helper):
                  email_username=None,
                  email_password=None,
                  driver_type='chrome',
-                 capabilities=DesiredCapabilities.CHROME.copy(),
+                 capabilities=None,
                  pasta_user=None,
                  wait_time=DEFAULT_WAIT_TIME,
                  opera_driver='',
