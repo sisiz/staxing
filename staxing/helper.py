@@ -26,7 +26,7 @@ try:
     from staxing.page_load import SeleniumWait as Page
 except ImportError:
     from page_load import SeleniumWait as Page
-__version__ = '0.1.14'
+__version__ = '0.1.15'
 
 
 class Helper(object):
@@ -354,6 +354,10 @@ class User(Helper):
             self.exercises_logout()
         else:
             raise HTTPError('Not an OpenStax URL')
+
+    def current_url(self):
+        """Return the current browser URL."""
+        return self.driver.current_url
 
     def goto_course_list(self):
         """Go to the course picker."""
