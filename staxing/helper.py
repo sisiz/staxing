@@ -806,13 +806,12 @@ class Student(User):
             ).send_keys(chomsky())
             WebDriverWait(self.driver, 30).until(
                 expect.staleness_of(
-                    (By.XPATH, '//button[contains(@class,"continue") and ' +
-                     '@disabled="true"]')
+                    (By.XPATH, '//*[@disabled]')
                 )
             )
             self.driver.find_element(By.CLASS_NAME, 'continue').click()
         except:
-            pass
+            raise
         finally:
             self.page.wait_for_page_load()
         answers = self.driver.find_elements(By.CLASS_NAME, 'answer-letter')
