@@ -26,6 +26,7 @@ class Assignment(object):
     BEFORE_SECTION_SELECT = 'section'
     BEFORE_READING_SELECT = 'reading'
     BEFORE_EXERCISE_SELECT = 'exercise'
+    BEFORE_URL = 'url'
     BEFORE_STATUS_SELECT = 'status'
 
     WAIT_TIME = 15
@@ -265,18 +266,45 @@ class Assignment(object):
         # assign the same dates for all periods
         if 'all' in periods:
             opens_on, closes_on = periods['all']
-            open_xpath = '//div[contains(@class,"-assignment-open-date")]' + \
-                         '//input[@class="datepicker__input"]'
-            close_xpath = '//div[contains(@class,"-assignment-due-date")]' + \
-                          '//input[@class="datepicker__input"]'
-            driver.find_element(By.XPATH, close_xpath).clear()
-            driver.find_element(By.XPATH, close_xpath).send_keys(closes_on)
+            today = datetime.date.today()
+            self.teacher.driver.find_element(
+                By.XPATH, '//div[contains(@class,"-due-date")]'\
+                '//div[contains(@class,"datepicker__input")]').click()
+            # get calendar to correct month
+            month = today.month
+            year = today.year
+            while (month != int(closes_on[:2]) or year != int(closes_on[6:])):
+                self.teacher.driver.find_element(
+                    By.XPATH, '//a[contains(@class,"navigation--next")]').click()
+                if month != 12:
+                    month += 1
+                else:
+                    month = 1
+                    year += 1
+            self.teacher.driver.find_element(
+                By.XPATH, '//div[contains(@class,"datepicker__day")'\
+                'and contains(text(),"'+ (closes_on[3:5]) +'")]').click()
             time.sleep(0.5)
-            driver.find_element(By.CLASS_NAME, 'assign-to-label').click()
-            driver.find_element(By.XPATH, open_xpath).clear()
-            driver.find_element(By.XPATH, open_xpath).send_keys(opens_on)
+            self.teacher.driver.find_element(By.CLASS_NAME, 'assign-to-label').click()
+            self.teacher.driver.find_element(
+                By.XPATH, '//div[contains(@class,"-open-date")]'\
+                '//div[contains(@class,"datepicker__input")]').click()
+            # get calendar to correct month
+            month = today.month
+            year = today.year
+            while (month != int(opens_on[:2]) or year != int(opens_on[6:])):
+                self.teacher.driver.find_element(
+                    By.XPATH, '//a[contains(@class,"navigation--next")]').click()
+                if month != 12:
+                    month += 1
+                else:
+                    month = 1
+                    year += 1
+            self.teacher.driver.find_element(
+                By.XPATH, '//div[contains(@class,"datepicker__day")'\
+                'and contains(text(),"'+ (opens_on[3:5]) +'")]').click()
             time.sleep(0.5)
-            driver.find_element(By.CLASS_NAME, 'assign-to-label').click()
+            self.teacher.driver.find_element(By.CLASS_NAME, 'assign-to-label').click()
             return
         # or set the dates for each period: {period: (open, close)}
         count = 0
@@ -686,11 +714,55 @@ class Assignment(object):
         self.select_status(driver, status)
 
     def add_new_external(self, driver, title, description, periods,
-                         assignment_url, status):
+                         assignment_url, status, break_point=None):
         '''
+        Add a new external assignment
+
+        driver:      WebDriver - Selenium WebDriver instance
+        title:       string    - assignment title
+        description: string    - assignment description or additional
+                                 instructions
+        periods:     dict      - <key>:   string <period name> OR 'all'
+                                 <value>: tuple  (<open date>, <close date>)
+                                          date format is 'MM/DD/YYYY'
+        assignment_url:    string      - website name
+        status:      string    - 'publish', 'cancel', or 'draft'
 
         '''
-        raise NotImplementedError(inspect.currentframe().f_code.co_name)
+        print('Creating a new External Assignment')
+        self.open_assignment_menu(driver)
+        driver.find_element(By.LINK_TEXT, 'Add External Assignment').click()
+        time.sleep(1)
+        wait = WebDriverWait(driver, Assignment.WAIT_TIME * 3)
+        wait.until(
+            expect.element_to_be_clickable(
+                (By.ID, 'reading-title')
+            )
+        )
+        if break_point == Assignment.BEFORE_TITLE:
+            return
+        driver.find_element(By.ID, 'reading-title').send_keys(title)
+        if break_point == Assignment.BEFORE_DESCRIPTION:
+            return
+        driver.find_element(
+            By.XPATH,
+            '//div[contains(@class,"assignment-description")]//textarea' +
+            '[contains(@class,"form-control")]'). \
+            send_keys(description)
+        if break_point == Assignment.BEFORE_PERIOD:
+            return
+        self.assign_periods(driver, periods)
+        if break_point == Assignment.BEFORE_URL:
+            return
+        driver.find_element(By.ID, 'external-url').send_keys(assignment_url)
+        wait.until(
+            expect.visibility_of_element_located(
+                (By.XPATH, '//span[text()="Publish"]')
+            )
+        )
+        if break_point == Assignment.BEFORE_STATUS_SELECT:
+            return
+        self.select_status(driver, status)
 
     def add_new_event(self, driver, title, description, periods, status):
         '''
