@@ -1,9 +1,10 @@
-"""Assignment helper functions for Selenium testing."""
+﻿"""Assignment helper functions for Selenium testing."""
 
 import random
 import string
 import time
 import inspect
+import datetime
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
@@ -263,20 +264,48 @@ class Assignment(object):
         Assign open and close dates
         '''
         # assign the same dates for all periods
+        today = datetime.date.today()
         if 'all' in periods:
             opens_on, closes_on = periods['all']
-            open_xpath = '//div[contains(@class,"-assignment-open-date")]' + \
-                         '//input[@class="datepicker__input"]'
-            close_xpath = '//div[contains(@class,"-assignment-due-date")]' + \
-                          '//input[@class="datepicker__input"]'
-            driver.find_element(By.XPATH, close_xpath).clear()
-            driver.find_element(By.XPATH, close_xpath).send_keys(closes_on)
+            today = datetime.date.today()
+            self.teacher.driver.find_element(
+                By.XPATH, '//div[contains(@class,"-due-date")]'\
+                '//div[contains(@class,"datepicker__input")]').click()
+            # get calendar to correct month
+            month = today.month
+            year = today.year
+            while (month != int(closes_on[:2]) or year != int(closes_on[6:])):
+                self.teacher.driver.find_element(
+                    By.XPATH, '//a[contains(@class,"navigation--next")]').click()
+                if month != 12:
+                    month += 1
+                else:
+                    month = 1
+                    year += 1
+            self.teacher.driver.find_element(
+                By.XPATH, '//div[contains(@class,"datepicker__day")'\
+                'and contains(text(),"'+ (closes_on[3:5]) +'")]').click()
             time.sleep(0.5)
-            driver.find_element(By.CLASS_NAME, 'assign-to-label').click()
-            driver.find_element(By.XPATH, open_xpath).clear()
-            driver.find_element(By.XPATH, open_xpath).send_keys(opens_on)
+            self.teacher.driver.find_element(By.CLASS_NAME, 'assign-to-label').click()
+            self.teacher.driver.find_element(
+                By.XPATH, '//div[contains(@class,"-open-date")]'\
+                '//div[contains(@class,"datepicker__input")]').click()
+            # get calendar to correct month
+            month = today.month
+            year = today.year
+            while (month != int(opens_on[:2]) or year != int(opens_on[6:])):
+                self.teacher.driver.find_element(
+                    By.XPATH, '//a[contains(@class,"navigation--next")]').click()
+                if month != 12:
+                    month += 1
+                else:
+                    month = 1
+                    year += 1
+            self.teacher.driver.find_element(
+                By.XPATH, '//div[contains(@class,"datepicker__day")'\
+                'and contains(text(),"'+ (opens_on[3:5]) +'")]').click()
             time.sleep(0.5)
-            driver.find_element(By.CLASS_NAME, 'assign-to-label').click()
+            self.teacher.driver.find_element(By.CLASS_NAME, 'assign-to-label').click()
             return
         # or set the dates for each period: {period: (open, close)}
         count = 0
@@ -288,6 +317,7 @@ class Assignment(object):
                 if periods[period] is 'all' or period is 'skip':
                     continue
                 opens_on, closes_on = periods[period]
+
                 driver.find_element(
                     By.XPATH,
                     '//input[@id="period-toggle-%s"]' % count +
