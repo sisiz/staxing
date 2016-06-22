@@ -5,10 +5,14 @@ import inspect
 import os
 import re
 
+from autochomsky import chomsky
 from builtins import FileNotFoundError
+from itertools import repeat
 # from pastasauce import PastaSauce
+from random import randint
 from requests import HTTPError
 from selenium import webdriver
+from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import WebDriverException
 from selenium.webdriver.chrome import service
 from selenium.webdriver.common.by import By
@@ -331,6 +335,9 @@ class User(Helper):
                 )
             ).click()
             self.page.wait_for_page_load()
+        elif 'exercises' in url_address:
+            self.driver.find_element(By.LINK_TEXT, 'Sign in').click()
+            self.page.wait_for_page_load()
         src = self.driver.page_source
         text_located = re.search(r'openstax', src.lower())
         self.sleep(1)
@@ -417,7 +424,22 @@ class User(Helper):
 
     def execises_logout(self):  # NOQA
         """Exercises logout helper."""
-        raise NotImplementedError(inspect.currentframe().f_code.co_name)
+        wait = WebDriverWait(self.driver, 3)
+        try:
+            wait.until(
+                expect.element_to_be_clickable(
+                    (By.ID, 'navbar-dropdown')
+                )
+            ).click()
+            wait.until(
+                expect.element_to_be_clickable(
+                    (By.XPATH, '//input[@aria-label="Log Out"]')
+                )
+            ).click()
+            self.page.wait_for_page_load()
+        except NoSuchElementException:
+            # Different page, but uses the same logic and link text
+            self.accounts_logout()
 
     def select_course(self, title=None, appearance=None):
         """Select course."""
@@ -595,8 +617,12 @@ class Teacher(User):
     def goto_course_roster(self):
         """Access the course roster page."""
         print('Enter: goto_course_roster')
-        self.goto_menu_item('Course Roster')
+        self.goto_menu_item('Course Settings and Roster')
         print('Exit: goto_course_roster')
+
+    def goto_course_settings(self):
+        """Access the course settings page."""
+        self.goto_course_roster()
 
     def add_course_section(self, section_name):
         """Add a section to the course."""
@@ -621,13 +647,12 @@ class Teacher(User):
         print('Exit: add_course_section')
 
     def get_enrollment_code(self, section_name):
-        """Return the enrollment phrase for a class section."""
+        """Return the enrollment code for a class section."""
         print('Enter: get_enrollment_code')
         if 'settings' not in self.driver.current_url:
             self.goto_course_roster()
         self.driver.find_element(
-            By.XPATH, '//a[span[@class="tab-item-period-name" ' +
-            'and text()="%s"]]' % section_name
+            By.XPATH, '//a[text()="%s"]' % section_name
         ).click()
         self.wait.until(
             expect.element_to_be_clickable(
@@ -637,7 +662,7 @@ class Teacher(User):
         sleep(1)
         code = self.wait.until(
             expect.presence_of_element_located(
-                (By.XPATH, '//p[@class="code"]')
+                (By.CLASS_NAME, 'code')
             )
         )
         print('Exit: get_enrollment_code')
@@ -696,25 +721,116 @@ class Student(User):
         raise NotImplementedError(inspect.currentframe().f_code.co_name)
 
     def goto_past_work(self):
-        """View work for previous weeks.
-
-        ToDo: all
-        """
-        raise NotImplementedError(inspect.currentframe().f_code.co_name)
+        """View work for previous weeks."""
+        self.goto_dashboard()
+        self.wait.until(
+            expect.element_to_be_clickable(
+                (By.LINK_TEXT, 'All Past Work')
+            )
+        ).click()
+        self.page.wait_for_page_load()
 
     def goto_performance_forecast(self):
-        """View the student performance forecast.
+        """View the student performance forecast."""
+        self.goto_menu_item('Performance Forecast')
 
-        ToDo: all
-        """
-        raise NotImplementedError(inspect.currentframe().f_code.co_name)
+    def practice(self, practice_set='weakest'):
+        """Complete a set of up to 5 practice problems."""
+        options = []
+        self.goto_dashboard()
+        try:
+            print('Loading Performance Forecast')
+            WebDriverWait(self.driver, 60).until(
+                expect.staleness_of(
+                    (By.CLASS_NAME, 'is-loading')
+                )
+            )
+        except:
+            pass
+        finally:
+            self.sleep(2)
+        options.append(
+            self.wait.until(
+                expect.visibility_of_element_located(
+                    (By.CLASS_NAME, 'practice')
+                )
+            )
+        )
+        if practice_set == 'weakest':
+            options[0].click()
+            self.page.wait_for_page_load()
+        else:
+            try:
+                sections = self.driver.find_elements(
+                    By.XPATH,
+                    '//button[contains(@aria-describedby,' +
+                    '"progress-bar-tooltip-")]'
+                )
+                if not isinstance(sections, list):
+                    sections = [sections]
+                for section in sections:
+                    options.append(section)
+            except:
+                pass
+            finally:
+                options[randint(0, len(options) - 1)].click()
+                self.page.wait_for_page_load()
+        breadbox = self.wait.until(
+            expect.presence_of_element_located(
+                (By.CLASS_NAME, 'task-breadcrumbs')
+            )
+        )
+        crumbs = breadbox.find_elements(By.TAG_NAME, 'span')
+        for _ in repeat(None, len(crumbs) - 1):
+            self.answer_assessment()
+        self.wait.until(
+            expect.element_to_be_clickable(
+                (By.LINK_TEXT, 'Back to Dashboard')
+            )
+        ).click()
+        self.page.wait_for_page_load()
 
-    def practice(self):
-        """Complete a set of 5 practice problems.
-
-        ToDo: all
-        """
-        raise NotImplementedError(inspect.currentframe().f_code.co_name)
+    def answer_assessment(self):
+        """Answer a Tutor assessment."""
+        self.wait.until(
+            expect.presence_of_element_located(
+                (By.CLASS_NAME, 'openstax-question')
+            )
+        )
+        # deal with free response
+        try:
+            WebDriverWait(self.driver, 2).until(
+                expect.presence_of_element_located(
+                    (By.XPATH, '//textarea')
+                )
+            ).send_keys(chomsky())
+            WebDriverWait(self.driver, 30).until(
+                expect.staleness_of(
+                    (By.XPATH, '//button[contains(@class,"continue") and ' +
+                     '@disabled="true"]')
+                )
+            )
+            self.driver.find_element(By.CLASS_NAME, 'continue').click()
+        except:
+            pass
+        finally:
+            self.page.wait_for_page_load()
+        answers = self.driver.find_elements(By.CLASS_NAME, 'answer-letter')
+        self.sleep(1.5)
+        answer = randint(0, len(answers) - 1)
+        print('Selecting %s' % answer)
+        answers[answer].click()
+        self.wait.until(
+            expect.element_to_be_clickable(
+                (By.XPATH, '//button[span[text()="Submit"]]')
+            )
+        ).click()
+        self.wait.until(
+            expect.element_to_be_clickable(
+                (By.CLASS_NAME, 'continue')
+            )
+        ).click()
+        self.page.wait_for_page_load()
 
 
 class Admin(User):
