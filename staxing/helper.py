@@ -799,25 +799,41 @@ class Student(User):
         )
         # deal with free response
         try:
+            text = chomsky()
             WebDriverWait(self.driver, 2).until(
                 expect.presence_of_element_located(
                     (By.XPATH, '//textarea')
                 )
-            ).send_keys(chomsky())
-            WebDriverWait(self.driver, 30).until(
-                expect.staleness_of(
-                    (By.XPATH, '//*[@disabled]')
+            ).clear()
+            WebDriverWait(self.driver, 2).until(
+                expect.presence_of_element_located(
+                    (By.XPATH, '//textarea')
+                )
+            ).send_keys(str(text))
+            text_block = WebDriverWait(self.driver, 2).until(
+                expect.presence_of_element_located(
+                    (By.XPATH, '//textarea')
                 )
             )
+            print('Free response entered')
+            Assignment.send_keys(self.driver, text_block, chomsky())
+            # WebDriverWait(self.driver, 30).until(
+            #    expect.staleness_of(
+            #        (By.XPATH, '//button[@disabled="" or @disabled="true"]')
+            #    )
+            # )
+            print('Continue to multiple choice')
             self.driver.find_element(By.CLASS_NAME, 'continue').click()
-        except:
-            raise
+        except Exception as ex:
+            print(ex)
         finally:
             self.page.wait_for_page_load()
         answers = self.driver.find_elements(By.CLASS_NAME, 'answer-letter')
         self.sleep(1.5)
         answer = randint(0, len(answers) - 1)
         print('Selecting %s' % answer)
+        Assignment.scroll_to(self.driver, answers[answer])
+        self.sleep(1.0)
         answers[answer].click()
         self.wait.until(
             expect.element_to_be_clickable(

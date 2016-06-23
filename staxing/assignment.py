@@ -202,9 +202,21 @@ class Assignment(object):
     @classmethod
     def send_keys(cls, driver, element, text):
         """Send data to an element using javascript."""
+        print('Scroll to element')
         Assignment.scroll_to(driver, element)
+        print('Clear the text box')
         driver.execute_script(
-            "arguments[0].setAttribute('value', arguments[1])",
+            "arguments[0].setAttribute('value', '');",
+            element
+        )
+        driver.execute_script("alert(arguments[0]);", str(element) +
+                              str(text))
+        alert = driver.switch_to.alert
+        time.sleep(7.5)
+        alert.accept()
+        print('Set text:\n%s' % text)
+        driver.execute_script(
+            "arguments[0].setAttribute('value', arguments[1]);",
             element,
             text
         )
