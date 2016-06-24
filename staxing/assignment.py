@@ -203,12 +203,9 @@ class Assignment(object):
     @classmethod
     def send_keys(cls, driver, element, text):
         """Send data to an element using javascript."""
-        print('Scroll to element')
         Assignment.scroll_to(driver, element)
-        print('Clear the text box')
         element.clear()
         time.sleep(0.5)
-        print('Set text: %s' % text[:61] + '...' if len(text) > 61 else '')
         for ch in text:
             element.send_keys(ch)
 
