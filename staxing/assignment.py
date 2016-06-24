@@ -205,21 +205,11 @@ class Assignment(object):
         print('Scroll to element')
         Assignment.scroll_to(driver, element)
         print('Clear the text box')
-        driver.execute_script(
-            "arguments[0].setAttribute('value', '');",
-            element
-        )
-        driver.execute_script("alert(arguments[0]);", str(element) +
-                              str(text))
-        alert = driver.switch_to.alert
-        time.sleep(7.5)
-        alert.accept()
-        print('Set text:\n%s' % text)
-        driver.execute_script(
-            "arguments[0].setAttribute('value', arguments[1]);",
-            element,
-            text
-        )
+        element.clear()
+        time.sleep(0.5)
+        print('Set text: %s' % text[:61] + '...' if len(text) > 61 else '')
+        for ch in text:
+            element.send_keys(ch)
 
     def open_assignment_menu(self, driver):
         """Open the Add Assignment menu if it is closed."""
