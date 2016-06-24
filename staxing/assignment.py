@@ -267,6 +267,7 @@ class Assignment(object):
         '''
         # assign the same dates for all periods
         if 'all' in periods:
+            driver.find_element(By.ID,'hide-periods-radio').click()
             opens_on, closes_on = periods['all']
             today = datetime.date.today()
             driver.find_element(
