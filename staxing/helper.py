@@ -19,7 +19,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from selenium.webdriver.support import expected_conditions as expect
 from selenium.webdriver.support.ui import WebDriverWait
-from time import sleep
+from time import sleep, perf_counter
 from urllib.parse import urlparse, ParseResult
 
 try:
@@ -30,7 +30,7 @@ try:
     from staxing.page_load import SeleniumWait as Page
 except ImportError:
     from page_load import SeleniumWait as Page
-__version__ = '0.1.16'
+__version__ = '0.1.18'
 
 
 class Helper(object):
@@ -738,6 +738,7 @@ class Student(User):
         """Complete a set of up to 5 practice problems."""
         options = []
         self.goto_dashboard()
+        # Wait for the student performance meters to load
         try:
             print('Loading Performance Forecast')
             WebDriverWait(self.driver, 60).until(
@@ -749,6 +750,7 @@ class Student(User):
             pass
         finally:
             self.sleep(2)
+        # Select a section or the weakest topic to practice
         options.append(
             self.wait.until(
                 expect.visibility_of_element_located(
@@ -775,77 +777,108 @@ class Student(User):
             finally:
                 options[randint(0, len(options) - 1)].click()
                 self.page.wait_for_page_load()
+        # How many questions are there? (default = 5)
         breadbox = self.wait.until(
             expect.presence_of_element_located(
                 (By.CLASS_NAME, 'task-breadcrumbs')
             )
         )
         crumbs = breadbox.find_elements(By.TAG_NAME, 'span')
+        # Answer each assessment
         for _ in repeat(None, len(crumbs) - 1):
             self.answer_assessment()
+        # Finish the practice
         self.wait.until(
             expect.element_to_be_clickable(
-                (By.LINK_TEXT, 'Back to Dashboard')
+                (By.XPATH, '//a[contains(text(),"Dashboard") and' +
+                 ' contains(@class,"btn")]')
             )
         ).click()
         self.page.wait_for_page_load()
 
     def answer_assessment(self):
         """Answer a Tutor assessment."""
+        start = perf_counter()
         self.wait.until(
             expect.presence_of_element_located(
                 (By.CLASS_NAME, 'openstax-question')
             )
         )
-        # deal with free response
+        print('%06.4f' % (perf_counter() - start))
+        start = perf_counter()
+        text = chomsky(1, 500)
+        print('%06.4f' % (perf_counter() - start))
+        start = perf_counter()
         try:
-            text = chomsky()
-            WebDriverWait(self.driver, 2).until(
-                expect.presence_of_element_located(
-                    (By.XPATH, '//textarea')
-                )
-            ).clear()
-            WebDriverWait(self.driver, 2).until(
-                expect.presence_of_element_located(
-                    (By.XPATH, '//textarea')
-                )
-            ).send_keys(str(text))
-            text_block = WebDriverWait(self.driver, 2).until(
+            text_block = WebDriverWait(self.driver, 1).until(
                 expect.presence_of_element_located(
                     (By.XPATH, '//textarea')
                 )
             )
-            print('Free response entered')
-            Assignment.send_keys(self.driver, text_block, chomsky())
-            # WebDriverWait(self.driver, 30).until(
-            #    expect.staleness_of(
-            #        (By.XPATH, '//button[@disabled="" or @disabled="true"]')
-            #    )
-            # )
+            print('%06.4f' % (perf_counter() - start))
+            start = perf_counter()
+            print('Enter free response')
+            Assignment.send_keys(self.driver, text_block, text)
+            print('%06.4f' % (perf_counter() - start))
+            start = perf_counter()
             print('Continue to multiple choice')
             self.driver.find_element(By.CLASS_NAME, 'continue').click()
+            print('%06.4f' % (perf_counter() - start))
+            start = perf_counter()
         except Exception as ex:
-            print(ex)
+            print('No free response; answer multiple choice: %s' % ex.args)
         finally:
+            print('%06.4f' % (perf_counter() - start))
+            start = perf_counter()
             self.page.wait_for_page_load()
+        print('%06.4f' % (perf_counter() - start))
+        start = perf_counter()
         answers = self.driver.find_elements(By.CLASS_NAME, 'answer-letter')
-        self.sleep(1.5)
-        answer = randint(0, len(answers) - 1)
+        print('%06.4f' % (perf_counter() - start))
+        start = perf_counter()
+        self.sleep(0.8)
+        print('%06.4f' % (perf_counter() - start))
+        start = perf_counter()
+        rand = randint(0, len(answers) - 1)
+        print('%06.4f' % (perf_counter() - start))
+        start = perf_counter()
+        answer = chr(ord('a') + rand)
+        print('%06.4f' % (perf_counter() - start))
+        start = perf_counter()
         print('Selecting %s' % answer)
-        Assignment.scroll_to(self.driver, answers[answer])
+        Assignment.scroll_to(self.driver, answers[0])
+        print('%06.4f' % (perf_counter() - start))
+        start = perf_counter()
+        if answer == 'a':
+            self.driver.execute_script('window.scrollBy(0, -160);')
+            print('%06.4f' % (perf_counter() - start))
+            start = perf_counter()
+        elif answer == 'd':
+            self.driver.execute_script('window.scrollBy(0, 160);')
+            print('%06.4f' % (perf_counter() - start))
+            start = perf_counter()
+        answers[rand].click()
+        print('%06.4f' % (perf_counter() - start))
+        start = perf_counter()
         self.sleep(1.0)
-        answers[answer].click()
+        print('%06.4f' % (perf_counter() - start))
+        start = perf_counter()
         self.wait.until(
             expect.element_to_be_clickable(
                 (By.XPATH, '//button[span[text()="Submit"]]')
             )
         ).click()
+        print('%06.4f' % (perf_counter() - start))
+        start = perf_counter()
         self.wait.until(
             expect.element_to_be_clickable(
                 (By.CLASS_NAME, 'continue')
             )
         ).click()
+        print('%06.4f' % (perf_counter() - start))
+        start = perf_counter()
         self.page.wait_for_page_load()
+        print('%06.4f' % (perf_counter() - start))
 
 
 class Admin(User):
