@@ -403,7 +403,7 @@ class Assignment(object):
                 chapter = driver.find_element(
                     By.XPATH,
                     '//h2[@data-chapter-section="%s"]' % section[2:] +
-                    '//input[contains(@id,"chapter-checkbox-")]'
+                    '//i[contains(@class,"tutor-icon")]'
                 )
                 time.sleep(0.5)
                 if not chapter.is_selected():
@@ -470,8 +470,7 @@ class Assignment(object):
         driver.find_element(By.ID, 'reading-select').click()
         wait.until(
             expect.visibility_of_element_located(
-                (By.XPATH, '//div[contains(@class,"select-reading-' +
-                 'dialog")]')
+                (By.XPATH, '//div[contains(@class,"reading-plan")]')
             )
         )
         if break_point == Assignment.BEFORE_SECTION_SELECT:
