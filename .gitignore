@@ -23,6 +23,7 @@ var/
 *.egg-info/
 .installed.cfg
 *.egg
+tester.py
 bin/
 result*.xml
 include/
@@ -46,8 +47,12 @@ htmlcov/
 nosetests.xml
 coverage.xml
 *,cover
+<<<<<<< HEAD
+results.xml
+=======
 .hypothesis/
 staxing/tester.py
+>>>>>>> 7cc0ace2610d55f70a6c5ddef7994c19364e2a99
 
 # Translations
 *.mo
