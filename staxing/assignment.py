@@ -10,7 +10,6 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support import expected_conditions as expect
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium import webdriver
 
 
 class Assignment(object):
@@ -20,7 +19,6 @@ class Assignment(object):
     HOMEWORK = 'homework'
     EXTERNAL = 'external'
     EVENT = 'event'
-    REVIEW = 'review'
 
     BEFORE_TITLE = 'title'
     BEFORE_DESCRIPTION = 'description'
@@ -41,9 +39,7 @@ class Assignment(object):
     DELETE = 'delete'
 
     def __init__(self):
-        '''
-        Provide a switch-style dictionary to add assignments
-        '''
+        """Provide a switch-style dictionary to add assignments."""
         self.add = {
             Assignment.READING:
             (
@@ -90,19 +86,6 @@ class Assignment(object):
                     title=name,
                     description=description,
                     periods=periods,
-                    status=state)
-            ),
-            Assignment.REVIEW:
-            (
-                lambda driver, name, description, periods, reading_list, state,
-                problems, url:
-                self.add_new_review(
-                    driver=driver,
-                    title=name,
-                    description=description,
-                    periods=periods,
-                    assessments=problems,
-                    assignment_url=url,
                     status=state)
             ),
         }
@@ -154,19 +137,6 @@ class Assignment(object):
                     periods=periods,
                     status=state)
             ),
-            Assignment.REVIEW:
-            (
-                lambda driver, name, description, periods, reading_list, state,
-                problems, url:
-                self.change_review(
-                    driver=driver,
-                    title=name,
-                    description=description,
-                    periods=periods,
-                    assessments=problems,
-                    assignment_url=url,
-                    status=state)
-            ),
         }
         self.remove = {
             Assignment.READING:
@@ -216,41 +186,34 @@ class Assignment(object):
                     periods=periods,
                     status=state)
             ),
-            Assignment.REVIEW:
-            (
-                lambda driver, name, description, periods, reading_list, state,
-                problems, url:
-                self.delete_review(
-                    driver=driver,
-                    title=name,
-                    description=description,
-                    periods=periods,
-                    assessments=problems,
-                    assignment_url=url,
-                    status=state)
-            ),
         }
 
     @classmethod
     def rword(cls, length):
-        '''
-        Return a <length>-character random string
-        '''
+        """Return a <length>-character random string."""
         return ''.join(random.choice(string.ascii_lowercase)
                        for i in range(length))
 
     @classmethod
     def scroll_to(cls, driver, element):
-        '''
-        Execute a scroll until in view javascript
-        '''
+        """Execute a scroll until in view javascript."""
         driver.execute_script('return arguments[0].scrollIntoView();', element)
         driver.execute_script('window.scrollBy(0, -80);')
 
+    @classmethod
+    def send_keys(cls, driver, element, text):
+        """Send data to an element using javascript."""
+        print('Scroll to element')
+        Assignment.scroll_to(driver, element)
+        print('Clear the text box')
+        element.clear()
+        time.sleep(0.5)
+        print('Set text: %s' % text[:61] + '...' if len(text) > 61 else '')
+        for ch in text:
+            element.send_keys(ch)
+
     def open_assignment_menu(self, driver):
-        '''
-        Open the Add Assignment menu if it is closed
-        '''
+        """Open the Add Assignment menu if it is closed."""
         try:
             assignment_menu = driver.find_element(
                 By.XPATH, '//button[contains(@class,"dropdown-toggle")]')
@@ -262,52 +225,65 @@ class Assignment(object):
             return
 
     def assign_periods(self, driver, periods):
-        '''
-        Assign open and close dates
-        '''
+        """Assign open and close dates."""
         # assign the same dates for all periods
         today = datetime.date.today()
         if 'all' in periods:
             opens_on, closes_on = periods['all']
             today = datetime.date.today()
             driver.find_element(
-                By.XPATH, '//div[contains(@class,"-due-date")]'\
-                '//div[contains(@class,"datepicker__input")]').click()
+                By.XPATH, '//div[contains(@class,"-due-date")]' +
+                '//div[contains(@class,"datepicker__input")]'
+            ).click()
             # get calendar to correct month
             month = today.month
             year = today.year
             while (month != int(closes_on[:2]) or year != int(closes_on[6:])):
                 driver.find_element(
-                    By.XPATH, '//a[contains(@class,"navigation--next")]').click()
+                    By.XPATH,
+                    '//a[contains(@class,"navigation--next")]'
+                ).click()
                 if month != 12:
                     month += 1
                 else:
                     month = 1
                     year += 1
             driver.find_element(
-                By.XPATH, '//div[contains(@class,"datepicker__day")'\
-                'and contains(text(),"'+ (closes_on[3:5]) +'")]').click()
+                By.XPATH, '//div[contains(@class,"datepicker__day")' +
+                'and contains(text(),"' + (closes_on[3:5]) + '")]'
+            ).click()
             time.sleep(0.5)
-            driver.find_element(By.CLASS_NAME, 'assign-to-label').click()
             driver.find_element(
-                By.XPATH, '//div[contains(@class,"-open-date")]'\
-                '//div[contains(@class,"datepicker__input")]').click()
+                By.CLASS_NAME,
+                'assign-to-label'
+            ).click()
+            driver.find_element(
+                By.XPATH, '//div[contains(@class,"-open-date")]' +
+                '//div[contains(@class,"datepicker__input")]'
+            ).click()
             # get calendar to correct month
             month = today.month
             year = today.year
             while (month != int(opens_on[:2]) or year != int(opens_on[6:])):
                 driver.find_element(
-                    By.XPATH, '//a[contains(@class,"navigation--next")]').click()
+                    By.XPATH,
+                    '//a[contains(@class,"navigation--next")]'
+                ).click()
                 if month != 12:
                     month += 1
                 else:
                     month = 1
                     year += 1
             driver.find_element(
-                By.XPATH, '//div[contains(@class,"datepicker__day")'\
-                'and contains(text(),"'+ (opens_on[3:5]) +'")]').click()
+                By.XPATH,
+                '//div[contains(@class,"datepicker__day")' +
+                'and contains(text(),"%s")]' % opens_on[3:5]
+            ).click()
             time.sleep(0.5)
-            driver.find_element(By.CLASS_NAME, 'assign-to-label').click()
+            driver.find_element(
+                By.CLASS_NAME,
+                'assign-to-label'
+            ).click()
             return
         # or set the dates for each period: {period: (open, close)}
         count = 0
@@ -319,25 +295,25 @@ class Assignment(object):
                 if periods[period] is 'all' or period is 'skip':
                     continue
                 opens_on, closes_on = periods[period]
-
                 driver.find_element(
                     By.XPATH,
                     '//input[@id="period-toggle-%s"]' % count +
                     '/../following-sibling::div/following-sibling::div' +
-                    '//input[contains(@class,"picker")]'). \
-                    send_keys(closes_on)
+                    '//input[contains(@class,"picker")]'
+                ).send_keys(closes_on)
                 time.sleep(0.5)
                 driver.find_element(By.CLASS_NAME, 'assign-to-label').click()
                 driver.find_element(
                     By.XPATH,
                     '//input[@id="period-toggle-%s"]' % count +
                     '/../following-sibling::div' +
-                    '//input[contains(@class,"picker")]'). \
-                    send_keys(opens_on)
+                    '//input[contains(@class,"picker")]'
+                ).send_keys(opens_on)
                 time.sleep(0.5)
                 driver.find_element(By.CLASS_NAME, 'assign-to-label').click()
 
     def select_status(self, driver, status):
+        """Select assignment status."""
         if status == self.PUBLISH:
             print('Publishing...')
             element = driver.find_element(By.CLASS_NAME, 'close-x')
@@ -384,9 +360,7 @@ class Assignment(object):
             ).click()
 
     def open_chapter_list(self, driver, chapter):
-        '''
-        Open the reading chapter list
-        '''
+        """Open the reading chapter list."""
         data_chapter = driver.find_element(
             By.XPATH,
             '//h2[contains(@data-chapter-section,"%s")]/a' % chapter
@@ -395,9 +369,7 @@ class Assignment(object):
             data_chapter.click()
 
     def select_sections(self, driver, chapters):
-        '''
-        Select the sections and chapters
-        '''
+        """Select the sections and chapters."""
         for section in chapters:
             if 'ch' in section:  # select the whole chapter
                 print('Adding chapter: ' + section)
@@ -429,8 +401,7 @@ class Assignment(object):
 
     def add_new_reading(self, driver, title, description, periods, readings,
                         status, break_point=None):
-        '''
-        Add a new reading assignment
+        """Add a new reading assignment.
 
         driver:      WebDriver - Selenium WebDriver instance
         title:       string    - assignment title
@@ -443,7 +414,7 @@ class Assignment(object):
                                  assignment; chapter numbers are prefixed with
                                  'ch'
         status:      string    - 'publish', 'cancel', or 'draft'
-        '''
+        """
         print('Creating a new Reading')
         self.open_assignment_menu(driver)
         driver.find_element(By.LINK_TEXT, 'Add Reading').click()
@@ -492,8 +463,7 @@ class Assignment(object):
         self.select_status(driver, status)
 
     def find_all_questions(self, driver, problems):
-        ''''''
-        # print('Problems: ', problems)
+        """Final all available questions."""
         questions = {}
         section = ''
         wait = WebDriverWait(driver, 5)
@@ -509,7 +479,6 @@ class Assignment(object):
         rows = driver.find_elements(
             By.XPATH,
             '//div[contains(@class,"add-exercise-list")]/*[@class="row"]')
-        # print('FAQ - Row count: %s\n%s' % (len(rows), rows))
         for row in rows:
             children = row.find_elements(By.XPATH, './*')
             if len(children) == 0:
@@ -521,33 +490,30 @@ class Assignment(object):
                         By.XPATH,
                         './/span[@class="chapter-section"]').text
                     questions[section] = []
-                    # print('FAQ - Section tag: %s' % section)
                 except:
                     question = children[0].find_element(
                         By.XPATH,
                         './/span[contains(text(),"@")]').text
                     question = question.split(' ')[1]
                     questions[section].append(question)
-                    # print('FAQ - Exercise tag: %s' % question)
             else:
                 question = children[0].find_element(
                     By.XPATH,
                     './/span[contains(text(),"@")]').text
                 question = question.split(' ')[1]
                 questions[section].append(question)
-                # print('FAQ - Exercise tag: %s' % question)
                 try:
                     question = children[1].find_element(
                         By.XPATH,
                         './/span[contains(text(),"@")]').text
                     question = question.split(' ')[1]
                     questions[section].append(question)
-                    # print('FAQ - Exercise tag: %s' % question)
                 except:
                     pass
         return questions
 
     def get_chapter_list(self, problems, chapter_id):
+        """Return available chapters."""
         available = []
         chapter = int(chapter_id[2:])
         for section in problems:
@@ -557,6 +523,7 @@ class Assignment(object):
         return available
 
     def set_tutor_selections(self, driver, problems):
+        """Select the number of Tutor selected problems."""
         tutor_picks = driver.find_element(
             By.XPATH, '//div[@class="tutor-selections"]//h2')
         current = int(tutor_picks.text)
@@ -580,7 +547,7 @@ class Assignment(object):
                 decrease.click()
 
     def add_homework_problems(self, driver, problems):
-        ''''''
+        """Add assessments to a homework."""
         wait = WebDriverWait(driver, Assignment.WAIT_TIME)
         driver.find_element(By.ID, 'problems-select').click()
         wait.until(
@@ -666,8 +633,7 @@ class Assignment(object):
 
     def add_new_homework(self, driver, title, description, periods, problems,
                          status, break_point=None):
-        '''
-        Add a new homework assignment
+        """Add a new homework assignment.
 
         driver:      WebDriver - Selenium WebDriver instance
         title:       string    - assignment title
@@ -687,7 +653,7 @@ class Assignment(object):
                                           int 'tutor' takes 2, 3, or 4
                                               default: 3
         status:      string    - 'publish', 'cancel', or 'draft'
-        '''
+        """
         print('Creating a new Homework')
         self.open_assignment_menu(driver)
         driver.find_element(By.LINK_TEXT, 'Add Homework').click()
@@ -719,8 +685,7 @@ class Assignment(object):
 
     def add_new_external(self, driver, title, description, periods,
                          assignment_url, status, break_point=None):
-        '''
-        Add a new external assignment
+        """Add a new external assignment.
 
         driver:      WebDriver - Selenium WebDriver instance
         title:       string    - assignment title
@@ -731,8 +696,7 @@ class Assignment(object):
                                           date format is 'MM/DD/YYYY'
         assignment_url:    string      - website name
         status:      string    - 'publish', 'cancel', or 'draft'
-
-        '''
+        """
         print('Creating a new External Assignment')
         self.open_assignment_menu(driver)
         driver.find_element(By.LINK_TEXT, 'Add External Assignment').click()
@@ -769,83 +733,43 @@ class Assignment(object):
         self.select_status(driver, status)
 
     def add_new_event(self, driver, title, description, periods, status):
-        '''
-
-        '''
-        raise NotImplementedError(inspect.currentframe().f_code.co_name)
-
-    def add_new_review(self, driver, title, description, periods, assessments,
-                       assignment_url, status):
-        '''
-
-        '''
+        """Add an event."""
         raise NotImplementedError(inspect.currentframe().f_code.co_name)
 
     def change_reading(self, driver, title, description='', periods={},
                        readings=[], status=DRAFT):
-        '''
-
-        '''
+        """Edit a reading assignment."""
         raise NotImplementedError(inspect.currentframe().f_code.co_name)
 
     def change_homework(self, driver, title, description, periods, problems,
                         status):
-        '''
-
-        '''
+        """Edit a homework assignment."""
         raise NotImplementedError(inspect.currentframe().f_code.co_name)
 
     def change_external(self, driver, title, description, periods,
                         assignment_url, status):
-        '''
-
-        '''
+        """Edit an external assignment."""
         raise NotImplementedError(inspect.currentframe().f_code.co_name)
 
     def change_event(self, driver, title, description, periods, status):
-        '''
-
-        '''
-        raise NotImplementedError(inspect.currentframe().f_code.co_name)
-
-    def change_review(self, driver, title, description, periods, assessments,
-                      assignment_url, status):
-        '''
-
-        '''
+        """Edit an event."""
         raise NotImplementedError(inspect.currentframe().f_code.co_name)
 
     def delete_reading(self, driver, title, description, periods, readings,
                        status):
-        '''
-
-        '''
+        """Delete a reading assignment."""
         raise NotImplementedError(inspect.currentframe().f_code.co_name)
 
     def delete_homework(self, driver, title, description, periods, problems,
                         status):
-        '''
-
-        '''
+        """Delete a homework assignment."""
         raise NotImplementedError(inspect.currentframe().f_code.co_name)
 
     def delete_external(self, driver, title, description, periods,
                         assignment_url, status):
-        '''
-
-        '''
+        """Delete an external assignment."""
         raise NotImplementedError(inspect.currentframe().f_code.co_name)
 
     def delete_event(self, driver, title, description, periods, status):
-        '''
-
-        '''
+        """Delete an event."""
         raise NotImplementedError(inspect.currentframe().f_code.co_name)
-
-    def delete_review(self, driver, title, description, periods, assessments,
-                      assignment_url, status):
-        '''
-
-        '''
-        raise NotImplementedError(inspect.currentframe().f_code.co_name)
-
