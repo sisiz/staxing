@@ -390,7 +390,7 @@ class Assignment(object):
             By.XPATH,
             '//h2[contains(@data-chapter-section,"%s")]/a' % chapter
         )
-        if not bool(data_chapter.get_attribute('aria_expanded')):
+        if (data_chapter.get_attribute('aria-expanded')) == 'false':
             data_chapter.click()
 
     def select_sections(self, driver, chapters):
