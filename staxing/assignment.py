@@ -729,7 +729,6 @@ class Assignment(object):
                                           date format is 'MM/DD/YYYY'
         assignment_url:    string      - website name
         status:      string    - 'publish', 'cancel', or 'draft'
-
         '''
         print('Creating a new External Assignment')
         self.open_assignment_menu(driver)
@@ -766,11 +765,50 @@ class Assignment(object):
             return
         self.select_status(driver, status)
 
-    def add_new_event(self, driver, title, description, periods, status):
+    def add_new_event(self, driver, title, description, periods, status, break_point=None):
         '''
+        Add a new external assignment
 
+        driver:      WebDriver - Selenium WebDriver instance
+        title:       string    - assignment title
+        description: string    - assignment description or additional
+                                 instructions
+        periods:     dict      - <key>:   string <period name> OR 'all'
+                                 <value>: tuple  (<open date>, <close date>)
+                                          date format is 'MM/DD/YYYY'
+        status:      string    - 'publish', 'cancel', or 'draft'
         '''
-        raise NotImplementedError(inspect.currentframe().f_code.co_name)
+        print('Creating a new Event')
+        self.open_assignment_menu(driver)
+        driver.find_element(By.LINK_TEXT, 'Add Event').click()
+        time.sleep(1)
+        wait = WebDriverWait(driver, Assignment.WAIT_TIME * 3)
+        wait.until(
+            expect.element_to_be_clickable(
+                (By.ID, 'reading-title')
+            )
+        )
+        if break_point == Assignment.BEFORE_TITLE:
+            return
+        driver.find_element(By.ID, 'reading-title').send_keys(title)
+        if break_point == Assignment.BEFORE_DESCRIPTION:
+            return
+        driver.find_element(
+            By.XPATH,
+            '//div[contains(@class,"assignment-description")]//textarea' +
+            '[contains(@class,"form-control")]'). \
+            send_keys(description)
+        if break_point == Assignment.BEFORE_PERIOD:
+            return
+        self.assign_periods(driver, periods)
+        wait.until(
+            expect.visibility_of_element_located(
+                (By.XPATH, '//span[text()="Publish"]')
+            )
+        )
+        if break_point == Assignment.BEFORE_STATUS_SELECT:
+            return
+        self.select_status(driver, status)
 
     def add_new_review(self, driver, title, description, periods, assessments,
                        assignment_url, status):
