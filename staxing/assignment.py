@@ -286,7 +286,7 @@ class Assignment(object):
                     year += 1
             driver.find_element(
                 By.XPATH, '//div[contains(@class,"datepicker__day")'\
-                'and contains(text(),"'+ (closes_on[3:5]) +'")]').click()
+                'and contains(text(),"'+ (closes_on[3:5]).lstrip('0') +'")]').click()
             time.sleep(0.5)
             driver.find_element(By.CLASS_NAME, 'assign-to-label').click()
             driver.find_element(
@@ -305,7 +305,7 @@ class Assignment(object):
                     year += 1
             driver.find_element(
                 By.XPATH, '//div[contains(@class,"datepicker__day")'\
-                'and contains(text(),"'+ (opens_on[3:5]) +'")]').click()
+                'and contains(text(),"'+ (opens_on[3:5]).lstrip('0') +'")]').click()
             time.sleep(0.5)
             driver.find_element(By.CLASS_NAME, 'assign-to-label').click()
             return
