@@ -663,7 +663,7 @@ class Assignment(object):
         ).click()
 
     def add_new_homework(self, driver, title, description, periods, problems,
-                         status, break_point=None):
+                         status, feedback, break_point=None):
         '''
         Add a new homework assignment
 
@@ -685,6 +685,7 @@ class Assignment(object):
                                           int 'tutor' takes 2, 3, or 4
                                               default: 3
         status:      string    - 'publish', 'cancel', or 'draft'
+        feedback:    string    - 'immediate', 'non-immediate'
         '''
         print('Creating a new Homework')
         self.open_assignment_menu(driver)
@@ -711,6 +712,11 @@ class Assignment(object):
         if break_point == Assignment.BEFORE_EXERCISE_SELECT:
             return
         self.add_homework_problems(driver, problems)
+        driver.find_element(By.ID,'feedback-select').click()
+        if feedback == 'immediate':
+            driver.find_element(By.XPATH,'//option[@value="immediate"]').click()
+        else:
+            driver.find_element(By.XPATH,'//option[@value="due_at"]').click()
         if break_point == Assignment.BEFORE_STATUS_SELECT:
             return
         self.select_status(driver, status)
