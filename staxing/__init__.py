@@ -1,11 +1,15 @@
-from .staxing import Stax
-from .helpers import StaxHelper, Admin, Student, Teacher
+"""Staxing's module file."""
+
+from .helper import Helper, Admin, Student, Teacher, User, ContentQA
 from .assignment import Assignment
+from .page_load import SeleniumWait
 
 if __name__ == '__main__':
-    a = Stax
-    b = StaxHelper
-    c = Assignment
-    d = Admin
-    e = Student
-    f = Teacher
+    a = Helper
+    b = Assignment
+    c = Admin
+    d = Student
+    e = Teacher
+    f = User
+    g = ContentQA
+    h = SeleniumWait
