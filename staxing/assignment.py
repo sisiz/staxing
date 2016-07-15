@@ -247,14 +247,9 @@ class Assignment(object):
                     month = 1
                     year += 1
             driver.find_element(
-<<<<<<< HEAD
-                By.XPATH, '//div[contains(@class,"datepicker__day")'\
-                'and contains(text(),"'+ (closes_on[3:5]).lstrip('0') +'")]').click()
-=======
                 By.XPATH, '//div[contains(@class,"datepicker__day")' +
                 'and contains(text(),"' + (closes_on[3:5]).lstrip('0') + '")]'
             ).click()
->>>>>>> 1a865b9823cdbe12084c81b0f91809403dfb39f2
             time.sleep(0.5)
             driver.find_element(
                 By.CLASS_NAME,
@@ -278,14 +273,9 @@ class Assignment(object):
                     month = 1
                     year += 1
             driver.find_element(
-<<<<<<< HEAD
-                By.XPATH, '//div[contains(@class,"datepicker__day")'\
-                'and contains(text(),"'+ (opens_on[3:5]).lstrip('0') +'")]').click()
-=======
                 By.XPATH, '//div[contains(@class,"datepicker__day")' +
                 'and contains(text(),"' + (opens_on[3:5]).lstrip('0') + '")]'
             ).click()
->>>>>>> 1a865b9823cdbe12084c81b0f91809403dfb39f2
             time.sleep(0.5)
             driver.find_element(
                 By.CLASS_NAME,
@@ -323,21 +313,21 @@ class Assignment(object):
         """Select assignment status."""
         if status == self.PUBLISH:
             print('Publishing...')
-            element = driver.find_element(By.CLASS_NAME, 'close-x')
+            element = driver.find_element(By.CLASS_NAME, 'footer-buttons')
             Assignment.scroll_to(driver, element)
             time.sleep(1)
             driver.find_element(
                 By.XPATH, '//button[contains(@class,"-publish")]').click()
         elif status == self.DRAFT:
             print('Saving draft')
-            element = driver.find_element(By.CLASS_NAME, 'close-x')
+            element = driver.find_element(By.CLASS_NAME, 'footer-buttons')
             Assignment.scroll_to(driver, element)
             time.sleep(1)
             element = driver.find_element(
                 By.XPATH, '//button[contains(@class," -save")]').click()
         elif status == self.CANCEL:
             print('Canceling assignment')
-            element = driver.find_element(By.CLASS_NAME, 'close-x')
+            element = driver.find_element(By.CLASS_NAME, 'footer-buttons')
             Assignment.scroll_to(driver, element)
             time.sleep(1)
             element = driver.find_element(
@@ -352,7 +342,7 @@ class Assignment(object):
             ).click()
         elif status == self.DELETE:
             print('Deleting assignment')
-            element = driver.find_element(By.CLASS_NAME, 'close-x')
+            element = driver.find_element(By.CLASS_NAME, 'footer-buttons')
             Assignment.scroll_to(driver, element)
             time.sleep(1)
             element = driver.find_element(
@@ -639,12 +629,7 @@ class Assignment(object):
 
     def add_new_homework(self, driver, title, description, periods, problems,
                          status, feedback, break_point=None):
-<<<<<<< HEAD
-        '''
-        Add a new homework assignment
-=======
         """Add a new homework assignment.
->>>>>>> 1a865b9823cdbe12084c81b0f91809403dfb39f2
 
         driver:      WebDriver - Selenium WebDriver instance
         title:       string    - assignment title
@@ -665,11 +650,7 @@ class Assignment(object):
                                               default: 3
         status:      string    - 'publish', 'cancel', or 'draft'
         feedback:    string    - 'immediate', 'non-immediate'
-<<<<<<< HEAD
-        '''
-=======
         """
->>>>>>> 1a865b9823cdbe12084c81b0f91809403dfb39f2
         print('Creating a new Homework')
         self.open_assignment_menu(driver)
         driver.find_element(By.LINK_TEXT, 'Add Homework').click()
@@ -756,15 +737,9 @@ class Assignment(object):
             return
         self.select_status(driver, status)
 
-<<<<<<< HEAD
     def add_new_event(self, driver, title, description, periods, status, break_point=None):
-        '''
-        Add a new event
-=======
-    def add_new_event(self, driver, title, description, periods, status,
                       break_point=None):
         """Add a new external assignment.
->>>>>>> 1a865b9823cdbe12084c81b0f91809403dfb39f2
 
         driver:      WebDriver - Selenium WebDriver instance
         title:       string    - assignment title
@@ -809,14 +784,8 @@ class Assignment(object):
 
     def add_new_review(self, driver, title, description, periods, assessments,
                        assignment_url, status):
-<<<<<<< HEAD
-        '''
-
-        '''
-=======
         """Add a review assignment."""
         raise NotImplementedError(inspect.currentframe().f_code.co_name)
->>>>>>> 1a865b9823cdbe12084c81b0f91809403dfb39f2
 
     def change_reading(self, driver, title, description='', periods={},
                        readings=[], status=DRAFT):
