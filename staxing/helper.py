@@ -528,6 +528,7 @@ class Teacher(User):
             reading_list=args['reading_list'] if 'reading_list' in args else
             None,
             problems=args['problems'] if 'problems' in args else None,
+            feedback=args['feedback'] if 'feedback' in args else None,
         )
 
     def change_assignment(self, assignment, args):
@@ -543,6 +544,7 @@ class Teacher(User):
             reading_list=args['reading_list'] if 'reading_list' in args else
             None,
             problems=args['problems'] if 'problems' in args else None,
+            feedback=args['feedback'] if 'feedback' in args else None,
         )
 
     def delete_assignment(self, assignment, args):
@@ -558,6 +560,7 @@ class Teacher(User):
             reading_list=args['reading_list'] if 'reading_list' in args else
             None,
             problems=args['problems'] if 'problems' in args else None,
+            feedback=args['feedback'] if 'feedback' in args else None,
         )
 
     def goto_menu_item(self, item):

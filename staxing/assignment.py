@@ -142,7 +142,7 @@ class Assignment(object):
             Assignment.READING:
             (
                 lambda driver, name, description, periods, reading_list, state,
-                problems, url:
+                problems, url, feedback:
                 self.delete_reading(
                     driver=driver,
                     title=name,
@@ -154,19 +154,20 @@ class Assignment(object):
             Assignment.HOMEWORK:
             (
                 lambda driver, name, description, periods, reading_list, state,
-                problems, url:
+                problems, url, feedback:
                 self.delete_homework(
                     driver=driver,
                     title=name,
                     description=description,
                     periods=periods,
                     problems=problems,
-                    status=state)
+                    status=state
+                    feedback=feedback)
             ),
             Assignment.EXTERNAL:
             (
                 lambda driver, name, description, periods, reading_list, state,
-                problems, url:
+                problems, url, feedback:
                 self.delete_external(
                     driver=driver,
                     title=name,
@@ -178,7 +179,7 @@ class Assignment(object):
             Assignment.EVENT:
             (
                 lambda driver, name, description, periods, reading_list, state,
-                problems, url:
+                problems, url, feedback:
                 self.delete_event(
                     driver=driver,
                     title=name,
@@ -334,12 +335,15 @@ class Assignment(object):
                 By.XPATH,
                 '//button[contains(@aria-role,"close") and @type="button"]'
             ).click()
-            wait = WebDriverWait(driver, Assignment.WAIT_TIME)
-            wait.until(
-                expect.visibility_of_element_located(
-                    (By.XPATH, '//button[contains(@class,"ok")]')
-                )
-            ).click()
+            try:
+                wait = WebDriverWait(driver, Assignment.WAIT_TIME)
+                wait.until(
+                    expect.visibility_of_element_located(
+                        (By.XPATH, '//button[contains(@class,"ok")]')
+                    )
+                ).click()
+            except:
+                pass
         elif status == self.DELETE:
             print('Deleting assignment')
             element = driver.find_element(By.CLASS_NAME, 'footer-buttons')
