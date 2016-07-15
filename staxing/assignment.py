@@ -226,7 +226,7 @@ class Assignment(object):
         # assign the same dates for all periods
         today = datetime.date.today()
         if 'all' in periods:
-            driver.find_element(By.ID,'hide-periods-radio').click()
+            driver.find_element(By.ID, 'hide-periods-radio').click()
             opens_on, closes_on = periods['all']
             today = datetime.date.today()
             driver.find_element(
@@ -247,8 +247,14 @@ class Assignment(object):
                     month = 1
                     year += 1
             driver.find_element(
+<<<<<<< HEAD
                 By.XPATH, '//div[contains(@class,"datepicker__day")'\
                 'and contains(text(),"'+ (closes_on[3:5]).lstrip('0') +'")]').click()
+=======
+                By.XPATH, '//div[contains(@class,"datepicker__day")' +
+                'and contains(text(),"' + (closes_on[3:5]).lstrip('0') + '")]'
+            ).click()
+>>>>>>> 1a865b9823cdbe12084c81b0f91809403dfb39f2
             time.sleep(0.5)
             driver.find_element(
                 By.CLASS_NAME,
@@ -272,8 +278,14 @@ class Assignment(object):
                     month = 1
                     year += 1
             driver.find_element(
+<<<<<<< HEAD
                 By.XPATH, '//div[contains(@class,"datepicker__day")'\
                 'and contains(text(),"'+ (opens_on[3:5]).lstrip('0') +'")]').click()
+=======
+                By.XPATH, '//div[contains(@class,"datepicker__day")' +
+                'and contains(text(),"' + (opens_on[3:5]).lstrip('0') + '")]'
+            ).click()
+>>>>>>> 1a865b9823cdbe12084c81b0f91809403dfb39f2
             time.sleep(0.5)
             driver.find_element(
                 By.CLASS_NAME,
@@ -627,8 +639,12 @@ class Assignment(object):
 
     def add_new_homework(self, driver, title, description, periods, problems,
                          status, feedback, break_point=None):
+<<<<<<< HEAD
         '''
         Add a new homework assignment
+=======
+        """Add a new homework assignment.
+>>>>>>> 1a865b9823cdbe12084c81b0f91809403dfb39f2
 
         driver:      WebDriver - Selenium WebDriver instance
         title:       string    - assignment title
@@ -649,7 +665,11 @@ class Assignment(object):
                                               default: 3
         status:      string    - 'publish', 'cancel', or 'draft'
         feedback:    string    - 'immediate', 'non-immediate'
+<<<<<<< HEAD
         '''
+=======
+        """
+>>>>>>> 1a865b9823cdbe12084c81b0f91809403dfb39f2
         print('Creating a new Homework')
         self.open_assignment_menu(driver)
         driver.find_element(By.LINK_TEXT, 'Add Homework').click()
@@ -675,11 +695,14 @@ class Assignment(object):
         if break_point == Assignment.BEFORE_EXERCISE_SELECT:
             return
         self.add_homework_problems(driver, problems)
-        driver.find_element(By.ID,'feedback-select').click()
+        driver.find_element(By.ID, 'feedback-select').click()
         if feedback == 'immediate':
-            driver.find_element(By.XPATH,'//option[@value="immediate"]').click()
+            driver.find_element(
+                By.XPATH,
+                '//option[@value="immediate"]'
+            ).click()
         else:
-            driver.find_element(By.XPATH,'//option[@value="due_at"]').click()
+            driver.find_element(By.XPATH, '//option[@value="due_at"]').click()
         if break_point == Assignment.BEFORE_STATUS_SELECT:
             return
         self.select_status(driver, status)
@@ -733,9 +756,15 @@ class Assignment(object):
             return
         self.select_status(driver, status)
 
+<<<<<<< HEAD
     def add_new_event(self, driver, title, description, periods, status, break_point=None):
         '''
         Add a new event
+=======
+    def add_new_event(self, driver, title, description, periods, status,
+                      break_point=None):
+        """Add a new external assignment.
+>>>>>>> 1a865b9823cdbe12084c81b0f91809403dfb39f2
 
         driver:      WebDriver - Selenium WebDriver instance
         title:       string    - assignment title
@@ -745,7 +774,7 @@ class Assignment(object):
                                  <value>: tuple  (<open date>, <close date>)
                                           date format is 'MM/DD/YYYY'
         status:      string    - 'publish', 'cancel', or 'draft'
-        '''
+        """
         print('Creating a new Event')
         self.open_assignment_menu(driver)
         driver.find_element(By.LINK_TEXT, 'Add Event').click()
@@ -780,9 +809,14 @@ class Assignment(object):
 
     def add_new_review(self, driver, title, description, periods, assessments,
                        assignment_url, status):
+<<<<<<< HEAD
         '''
 
         '''
+=======
+        """Add a review assignment."""
+        raise NotImplementedError(inspect.currentframe().f_code.co_name)
+>>>>>>> 1a865b9823cdbe12084c81b0f91809403dfb39f2
 
     def change_reading(self, driver, title, description='', periods={},
                        readings=[], status=DRAFT):
