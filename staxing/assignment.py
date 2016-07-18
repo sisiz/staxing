@@ -63,7 +63,8 @@ class Assignment(object):
                     description=description,
                     periods=periods,
                     problems=problems,
-                    status=state)
+                    status=state,
+                    feedback=feedback)
             ),
             Assignment.EXTERNAL:
             (
@@ -112,7 +113,8 @@ class Assignment(object):
                     description=description,
                     periods=periods,
                     problems=problems,
-                    status=state)
+                    status=state,
+                    feedback=feedback)
             ),
             Assignment.EXTERNAL:
             (
@@ -161,7 +163,7 @@ class Assignment(object):
                     description=description,
                     periods=periods,
                     problems=problems,
-                    status=state
+                    status=state,
                     feedback=feedback)
             ),
             Assignment.EXTERNAL:
