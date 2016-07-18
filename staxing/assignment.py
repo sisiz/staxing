@@ -741,7 +741,7 @@ class Assignment(object):
             return
         self.select_status(driver, status)
 
-    def add_new_event(self, driver, title, description, periods, status, break_point=None):
+    def add_new_event(self, driver, title, description, periods, status,
                       break_point=None):
         """Add a new external assignment.
 
