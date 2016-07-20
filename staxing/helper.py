@@ -31,7 +31,7 @@ try:
 except ImportError:
     from page_load import SeleniumWait as Page
 
-__version__ = '0.1.23'
+__version__ = '0.0.24'
 
 
 class Helper(object):
@@ -39,6 +39,20 @@ class Helper(object):
 
     CONDENSED_WIDTH = 767  # pixels wide
     DEFAULT_WAIT_TIME = 15  # seconds
+    CAPABILITIES = {
+        'android': DesiredCapabilities.ANDROID,
+        'chrome': DesiredCapabilities.CHROME,
+        'firefox': DesiredCapabilities.FIREFOX,
+        'htmlunit': DesiredCapabilities.HTMLUNIT,
+        'htmlunitwithjs': DesiredCapabilities.HTMLUNITWITHJS,
+        'internetexplorer': DesiredCapabilities.INTERNETEXPLORER,
+        'ipad': DesiredCapabilities.IPAD,
+        'iphone': DesiredCapabilities.IPHONE,
+        'microsoftedge': DesiredCapabilities.EDGE,
+        'opera': DesiredCapabilities.OPERA,
+        'phantomjs': DesiredCapabilities.PHANTOMJS,
+        'safari': DesiredCapabilities.SAFARI,
+    }
 
     def __init__(self,
                  driver_type='chrome',
@@ -85,6 +99,13 @@ class Helper(object):
             self.driver.quit()
         except:
             pass
+
+    @classmethod
+    def default_capabilities(cls, browser='chrome'):
+        """Return the default browser capabilities."""
+        browser = browser.lower()
+        browser = ''.join(browser.split())
+        return Helper.CAPABILITIES[browser].copy()
 
     def run_on(self, driver_type, pasta_user=None, capabilities={}):
         """Webdriver activation.
@@ -138,10 +159,6 @@ class Helper(object):
             raise FileNotFoundError(err)
         except Exception as err:
             raise err
-            # raise WebDriverTypeException(
-            #    msg='Unknown WebDriver type: "%s" - %s' % (driver, err),
-            #    err=err.__traceback__
-            # )
 
     def start_opera(self, location):
         """Opera initiator."""
@@ -529,7 +546,6 @@ class Teacher(User):
             reading_list=args['reading_list'] if 'reading_list' in args else
             None,
             problems=args['problems'] if 'problems' in args else None,
-            feedback=args['feedback'] if 'feedback' in args else None,
         )
 
     def change_assignment(self, assignment, args):
@@ -545,7 +561,6 @@ class Teacher(User):
             reading_list=args['reading_list'] if 'reading_list' in args else
             None,
             problems=args['problems'] if 'problems' in args else None,
-            feedback=args['feedback'] if 'feedback' in args else None,
         )
 
     def delete_assignment(self, assignment, args):
@@ -561,7 +576,6 @@ class Teacher(User):
             reading_list=args['reading_list'] if 'reading_list' in args else
             None,
             problems=args['problems'] if 'problems' in args else None,
-            feedback=args['feedback'] if 'feedback' in args else None,
         )
 
     def goto_menu_item(self, item):

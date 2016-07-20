@@ -95,7 +95,7 @@ class Assignment(object):
             (
                 lambda driver, name, description='', periods={},
                 reading_list={}, state=Assignment.DRAFT, problems=None,
-                url='',feedback='immediate':
+                url='', feedback='immediate':
                 self.change_reading(
                     driver=driver,
                     title=name,
@@ -145,7 +145,7 @@ class Assignment(object):
             Assignment.READING:
             (
                 lambda driver, name, description, periods, reading_list, state,
-                problems, url, feedback, feedback:
+                problems, url, feedback:
                 self.delete_reading(
                     driver=driver,
                     title=name,
