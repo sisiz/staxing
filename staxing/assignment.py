@@ -44,7 +44,7 @@ class Assignment(object):
             Assignment.READING:
             (
                 lambda driver, name, description, periods, reading_list, state,
-                problems, url:
+                problems, url, feedback:
                 self.add_new_reading(
                     driver=driver,
                     title=name,
@@ -56,7 +56,7 @@ class Assignment(object):
             Assignment.HOMEWORK:
             (
                 lambda driver, name, description, periods, reading_list, state,
-                problems, url:
+                problems, url, feedback:
                 self.add_new_homework(
                     driver=driver,
                     title=name,
@@ -68,7 +68,7 @@ class Assignment(object):
             Assignment.EXTERNAL:
             (
                 lambda driver, name, description, periods, reading_list, state,
-                problems, url:
+                problems, url, feedback:
                 self.add_new_external(
                     driver=driver,
                     title=name,
@@ -80,7 +80,7 @@ class Assignment(object):
             Assignment.EVENT:
             (
                 lambda driver, name, description, periods, reading_list, state,
-                problems, url:
+                problems, url, feedback:
                 self.add_new_event(
                     driver=driver,
                     title=name,
@@ -92,7 +92,7 @@ class Assignment(object):
         self.edit = {
             Assignment.READING:
             (
-                lambda driver, name, description='', periods={},
+                lambda driver, name, feedback, description='', periods={},
                 reading_list={}, state=Assignment.DRAFT, problems=None, url='':
                 self.change_reading(
                     driver=driver,
@@ -105,7 +105,7 @@ class Assignment(object):
             Assignment.HOMEWORK:
             (
                 lambda driver, name, description, periods, reading_list, state,
-                problems, url:
+                problems, url, feedback:
                 self.change_homework(
                     driver=driver,
                     title=name,
@@ -117,7 +117,7 @@ class Assignment(object):
             Assignment.EXTERNAL:
             (
                 lambda driver, name, description, periods, reading_list, state,
-                problems, url:
+                problems, url, feedback:
                 self.change_external(
                     driver=driver,
                     title=name,
@@ -129,7 +129,7 @@ class Assignment(object):
             Assignment.EVENT:
             (
                 lambda driver, name, description, periods, reading_list, state,
-                problems, url:
+                problems, url, feedback:
                 self.change_event(
                     driver=driver,
                     title=name,
@@ -161,7 +161,7 @@ class Assignment(object):
                     description=description,
                     periods=periods,
                     problems=problems,
-                    status=state
+                    status=state,
                     feedback=feedback)
             ),
             Assignment.EXTERNAL:
