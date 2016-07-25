@@ -10,6 +10,8 @@ from contextlib import contextmanager
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support.expected_conditions import staleness_of
 
+__version__ = '0.0.2'
+
 
 class SeleniumWait(object):
     """Wait for webpage load by watching for staleness."""

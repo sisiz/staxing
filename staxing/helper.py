@@ -30,7 +30,7 @@ try:
     from staxing.page_load import SeleniumWait as Page
 except ImportError:
     from page_load import SeleniumWait as Page
-__version__ = '0.1.18'
+__version__ = '0.0.25'
 
 
 class Helper(object):
