@@ -11,7 +11,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support import expected_conditions as expect
 from selenium.webdriver.support.ui import WebDriverWait
 
-__version__ = '0.0.25'
+__version__ = '0.0.26'
 
 
 class Assignment(object):
@@ -46,7 +46,7 @@ class Assignment(object):
             Assignment.READING:
             (
                 lambda driver, name, description, periods, reading_list, state,
-                problems, url:
+                problems, url, feedback:
                 self.add_new_reading(
                     driver=driver,
                     title=name,
@@ -58,19 +58,20 @@ class Assignment(object):
             Assignment.HOMEWORK:
             (
                 lambda driver, name, description, periods, reading_list, state,
-                problems, url:
+                problems, url, feedback:
                 self.add_new_homework(
                     driver=driver,
                     title=name,
                     description=description,
                     periods=periods,
                     problems=problems,
-                    status=state)
+                    status=state,
+                    feedback=feedback)
             ),
             Assignment.EXTERNAL:
             (
                 lambda driver, name, description, periods, reading_list, state,
-                problems, url:
+                problems, url, feedback:
                 self.add_new_external(
                     driver=driver,
                     title=name,
@@ -82,7 +83,7 @@ class Assignment(object):
             Assignment.EVENT:
             (
                 lambda driver, name, description, periods, reading_list, state,
-                problems, url:
+                problems, url, feedback:
                 self.add_new_event(
                     driver=driver,
                     title=name,
@@ -95,7 +96,8 @@ class Assignment(object):
             Assignment.READING:
             (
                 lambda driver, name, description='', periods={},
-                reading_list={}, state=Assignment.DRAFT, problems=None, url='':
+                reading_list={}, state=Assignment.DRAFT, problems=None,
+                url='', feedback='immediate':
                 self.change_reading(
                     driver=driver,
                     title=name,
@@ -107,19 +109,20 @@ class Assignment(object):
             Assignment.HOMEWORK:
             (
                 lambda driver, name, description, periods, reading_list, state,
-                problems, url:
+                problems, url, feedback:
                 self.change_homework(
                     driver=driver,
                     title=name,
                     description=description,
                     periods=periods,
                     problems=problems,
-                    status=state)
+                    status=state,
+                    feedback=feedback)
             ),
             Assignment.EXTERNAL:
             (
                 lambda driver, name, description, periods, reading_list, state,
-                problems, url:
+                problems, url, feedback:
                 self.change_external(
                     driver=driver,
                     title=name,
@@ -131,7 +134,7 @@ class Assignment(object):
             Assignment.EVENT:
             (
                 lambda driver, name, description, periods, reading_list, state,
-                problems, url:
+                problems, url, feedback:
                 self.change_event(
                     driver=driver,
                     title=name,
@@ -144,7 +147,7 @@ class Assignment(object):
             Assignment.READING:
             (
                 lambda driver, name, description, periods, reading_list, state,
-                problems, url:
+                problems, url, feedback:
                 self.delete_reading(
                     driver=driver,
                     title=name,
@@ -156,19 +159,20 @@ class Assignment(object):
             Assignment.HOMEWORK:
             (
                 lambda driver, name, description, periods, reading_list, state,
-                problems, url:
+                problems, url, feedback:
                 self.delete_homework(
                     driver=driver,
                     title=name,
                     description=description,
                     periods=periods,
                     problems=problems,
-                    status=state)
+                    status=state,
+                    feedback=feedback)
             ),
             Assignment.EXTERNAL:
             (
                 lambda driver, name, description, periods, reading_list, state,
-                problems, url:
+                problems, url, feedback:
                 self.delete_external(
                     driver=driver,
                     title=name,
@@ -180,7 +184,7 @@ class Assignment(object):
             Assignment.EVENT:
             (
                 lambda driver, name, description, periods, reading_list, state,
-                problems, url:
+                problems, url, feedback:
                 self.delete_event(
                     driver=driver,
                     title=name,
@@ -228,6 +232,7 @@ class Assignment(object):
         # assign the same dates for all periods
         today = datetime.date.today()
         if 'all' in periods:
+            driver.find_element(By.ID, 'hide-periods-radio').click()
             opens_on, closes_on = periods['all']
             today = datetime.date.today()
             driver.find_element(
@@ -249,7 +254,7 @@ class Assignment(object):
                     year += 1
             driver.find_element(
                 By.XPATH, '//div[contains(@class,"datepicker__day")' +
-                'and contains(text(),"' + (closes_on[3:5]) + '")]'
+                'and contains(text(),"' + (closes_on[3:5]).lstrip('0') + '")]'
             ).click()
             time.sleep(0.5)
             driver.find_element(
@@ -274,9 +279,8 @@ class Assignment(object):
                     month = 1
                     year += 1
             driver.find_element(
-                By.XPATH,
-                '//div[contains(@class,"datepicker__day")' +
-                'and contains(text(),"%s")]' % opens_on[3:5]
+                By.XPATH, '//div[contains(@class,"datepicker__day")' +
+                'and contains(text(),"' + (opens_on[3:5]).lstrip('0') + '")]'
             ).click()
             time.sleep(0.5)
             driver.find_element(
@@ -315,36 +319,39 @@ class Assignment(object):
         """Select assignment status."""
         if status == self.PUBLISH:
             print('Publishing...')
-            element = driver.find_element(By.CLASS_NAME, 'close-x')
+            element = driver.find_element(By.CLASS_NAME, 'footer-buttons')
             Assignment.scroll_to(driver, element)
             time.sleep(1)
             driver.find_element(
                 By.XPATH, '//button[contains(@class,"-publish")]').click()
         elif status == self.DRAFT:
             print('Saving draft')
-            element = driver.find_element(By.CLASS_NAME, 'close-x')
+            element = driver.find_element(By.CLASS_NAME, 'footer-buttons')
             Assignment.scroll_to(driver, element)
             time.sleep(1)
             element = driver.find_element(
                 By.XPATH, '//button[contains(@class," -save")]').click()
         elif status == self.CANCEL:
             print('Canceling assignment')
-            element = driver.find_element(By.CLASS_NAME, 'close-x')
+            element = driver.find_element(By.CLASS_NAME, 'footer-buttons')
             Assignment.scroll_to(driver, element)
             time.sleep(1)
             element = driver.find_element(
                 By.XPATH,
                 '//button[contains(@aria-role,"close") and @type="button"]'
             ).click()
-            wait = WebDriverWait(driver, Assignment.WAIT_TIME)
-            wait.until(
-                expect.visibility_of_element_located(
-                    (By.XPATH, '//button[contains(@class,"ok")]')
-                )
-            ).click()
+            try:
+                wait = WebDriverWait(driver, Assignment.WAIT_TIME)
+                wait.until(
+                    expect.visibility_of_element_located(
+                        (By.XPATH, '//button[contains(@class,"ok")]')
+                    )
+                ).click()
+            except:
+                pass
         elif status == self.DELETE:
             print('Deleting assignment')
-            element = driver.find_element(By.CLASS_NAME, 'close-x')
+            element = driver.find_element(By.CLASS_NAME, 'footer-buttons')
             Assignment.scroll_to(driver, element)
             time.sleep(1)
             element = driver.find_element(
@@ -364,7 +371,7 @@ class Assignment(object):
             By.XPATH,
             '//h2[contains(@data-chapter-section,"%s")]/a' % chapter
         )
-        if not bool(data_chapter.get_attribute('aria_expanded')):
+        if (data_chapter.get_attribute('aria-expanded')) == 'false':
             data_chapter.click()
 
     def select_sections(self, driver, chapters):
@@ -375,7 +382,7 @@ class Assignment(object):
                 chapter = driver.find_element(
                     By.XPATH,
                     '//h2[@data-chapter-section="%s"]' % section[2:] +
-                    '//input[contains(@id,"chapter-checkbox-")]'
+                    '//i[contains(@class,"tutor-icon")]'
                 )
                 time.sleep(0.5)
                 if not chapter.is_selected():
@@ -441,8 +448,7 @@ class Assignment(object):
         driver.find_element(By.ID, 'reading-select').click()
         wait.until(
             expect.visibility_of_element_located(
-                (By.XPATH, '//div[contains(@class,"select-reading-' +
-                 'dialog")]')
+                (By.XPATH, '//div[contains(@class,"reading-plan")]')
             )
         )
         if break_point == Assignment.BEFORE_SECTION_SELECT:
@@ -631,7 +637,7 @@ class Assignment(object):
         ).click()
 
     def add_new_homework(self, driver, title, description, periods, problems,
-                         status, break_point=None):
+                         status, feedback, break_point=None):
         """Add a new homework assignment.
 
         driver:      WebDriver - Selenium WebDriver instance
@@ -652,6 +658,7 @@ class Assignment(object):
                                           int 'tutor' takes 2, 3, or 4
                                               default: 3
         status:      string    - 'publish', 'cancel', or 'draft'
+        feedback:    string    - 'immediate', 'non-immediate'
         """
         print('Creating a new Homework')
         self.open_assignment_menu(driver)
@@ -678,6 +685,14 @@ class Assignment(object):
         if break_point == Assignment.BEFORE_EXERCISE_SELECT:
             return
         self.add_homework_problems(driver, problems)
+        driver.find_element(By.ID, 'feedback-select').click()
+        if feedback == 'immediate':
+            driver.find_element(
+                By.XPATH,
+                '//option[@value="immediate"]'
+            ).click()
+        else:
+            driver.find_element(By.XPATH, '//option[@value="due_at"]').click()
         if break_point == Assignment.BEFORE_STATUS_SELECT:
             return
         self.select_status(driver, status)
@@ -731,8 +746,54 @@ class Assignment(object):
             return
         self.select_status(driver, status)
 
-    def add_new_event(self, driver, title, description, periods, status):
-        """Add an event."""
+    def add_new_event(self, driver, title, description, periods, status,
+                      break_point=None):
+        """Add a new external assignment.
+
+        driver:      WebDriver - Selenium WebDriver instance
+        title:       string    - assignment title
+        description: string    - assignment description or additional
+                                 instructions
+        periods:     dict      - <key>:   string <period name> OR 'all'
+                                 <value>: tuple  (<open date>, <close date>)
+                                          date format is 'MM/DD/YYYY'
+        status:      string    - 'publish', 'cancel', or 'draft'
+        """
+        print('Creating a new Event')
+        self.open_assignment_menu(driver)
+        driver.find_element(By.LINK_TEXT, 'Add Event').click()
+        time.sleep(1)
+        wait = WebDriverWait(driver, Assignment.WAIT_TIME * 3)
+        wait.until(
+            expect.element_to_be_clickable(
+                (By.ID, 'reading-title')
+            )
+        )
+        if break_point == Assignment.BEFORE_TITLE:
+            return
+        driver.find_element(By.ID, 'reading-title').send_keys(title)
+        if break_point == Assignment.BEFORE_DESCRIPTION:
+            return
+        driver.find_element(
+            By.XPATH,
+            '//div[contains(@class,"assignment-description")]//textarea' +
+            '[contains(@class,"form-control")]'). \
+            send_keys(description)
+        if break_point == Assignment.BEFORE_PERIOD:
+            return
+        self.assign_periods(driver, periods)
+        wait.until(
+            expect.visibility_of_element_located(
+                (By.XPATH, '//span[text()="Publish"]')
+            )
+        )
+        if break_point == Assignment.BEFORE_STATUS_SELECT:
+            return
+        self.select_status(driver, status)
+
+    def add_new_review(self, driver, title, description, periods, assessments,
+                       assignment_url, status):
+        """Add a review assignment."""
         raise NotImplementedError(inspect.currentframe().f_code.co_name)
 
     def change_reading(self, driver, title, description='', periods={},
