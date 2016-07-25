@@ -11,7 +11,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support.expected_conditions import staleness_of
 
-__version__ = '0.0.2'
+__version__ = '0.0.3'
 
 
 class SeleniumWait(object):
