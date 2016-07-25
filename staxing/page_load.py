@@ -36,7 +36,6 @@ class SeleniumWait(object):
             staleness_of(old_page)
         )
 
-    @contextmanager
     def wait_for_loading_staleness(self, style, pseudo_element):
         """Wait for section load.
 
