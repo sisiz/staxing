@@ -546,7 +546,8 @@ class Teacher(User):
             reading_list=args['reading_list'] if 'reading_list' in args else
             None,
             problems=args['problems'] if 'problems' in args else None,
-        )
+            feedback=args['feedback'] if 'feedback' in args else None, 
+       )
 
     def change_assignment(self, assignment, args):
         """Alter an existing assignment."""
@@ -560,8 +561,9 @@ class Teacher(User):
             url=args['url'] if 'url' in args else None,
             reading_list=args['reading_list'] if 'reading_list' in args else
             None,
-            problems=args['problems'] if 'problems' in args else None,
-        )
+            problems=args['problems'] if 'problems' in args else None,    
+            feedback=args['feedback'] if 'feedback' in args else None,
+       )
 
     def delete_assignment(self, assignment, args):
         """Delete an existing assignment (if available)."""
@@ -576,7 +578,8 @@ class Teacher(User):
             reading_list=args['reading_list'] if 'reading_list' in args else
             None,
             problems=args['problems'] if 'problems' in args else None,
-        )
+            feedback=args['feedback'] if 'feedback' in args else None,
+       )
 
     def goto_menu_item(self, item):
         """Go to a specific user menu item."""
