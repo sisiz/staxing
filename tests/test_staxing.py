@@ -7,16 +7,20 @@ import time
 import unittest
 
 from random import randint
-# from staxing.assignment import Assignment
+from selenium.webdriver.common.by import By
+# from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support import expected_conditions as expect
+from selenium.webdriver.support.ui import WebDriverWait
+from staxing.assignment import Assignment
 from staxing.helper import Helper, Teacher, Student, Admin, ContentQA, User
 # from staxing.page_load import SeleniumWait
 
-__version__ = '0.0.2'
+__version__ = '0.0.3'
 TESTS = os.getenv(
     'CASELIST',
     str([
         101, 102, 103, 104, 105, 106,
-        201,
+        201, 202, 203, 204, 205, 206, 207, 208,
         301,
         401,
         501,
@@ -28,7 +32,7 @@ TESTS = os.getenv(
 
 
 class TestStaxingHelper(unittest.TestCase):
-    """Staxing case tests."""
+    """Staxing case tests for Helper."""
 
     def setUp(self):
         """Pretest settings."""
@@ -89,13 +93,13 @@ class TestStaxingHelper(unittest.TestCase):
 
     @pytest.mark.skipif(str(104) not in TESTS, reason='Excluded')
     def test_helper_get_webpage(self):
-        """Render multiple date strings."""
+        """Get a webpage."""
         self.helper.get('https://www.google.com/')
         assert('Google' in self.helper.driver.title)
 
     @pytest.mark.skipif(str(105) not in TESTS, reason='Excluded')
     def test_helper_get_window_size(self):
-        """Render multiple date strings."""
+        """Read window size."""
         new_height = randint(300, 600)
         new_width = randint(300, 600)
         self.helper.driver.set_window_size(new_width, new_height)
@@ -115,7 +119,7 @@ class TestStaxingHelper(unittest.TestCase):
 
     @pytest.mark.skipif(str(106) not in TESTS, reason='Excluded')
     def test_helper_sleep_within_two_percent_accuracy(self):
-        """Render multiple date strings."""
+        """Sleep command is accurate to +-2%."""
         sleep_length = randint(3, 8) / 1.0
         start_time = time.time()
         self.helper.sleep(sleep_length)
@@ -130,11 +134,14 @@ class TestStaxingHelper(unittest.TestCase):
 
 
 class TestStaxingUser(unittest.TestCase):
-    """Staxing case tests."""
+    """Staxing case tests for User."""
 
     def setUp(self):
         """Pretest settings."""
         self.user = User('', '', '')
+        self.server = ''.join(('https://', os.getenv('SERVER_URL')))
+        self.login = os.getenv('STUDENT_USER')
+        self.password = os.getenv('STUDENT_PASSWORD')
 
     def tearDown(self):
         """Test destructor."""
@@ -144,9 +151,156 @@ class TestStaxingUser(unittest.TestCase):
             pass
 
     @pytest.mark.skipif(str(201) not in TESTS, reason='Excluded')
-    def test_base_case(self):
+    def test_user_tutor_login(self):
+        """Log into Tutor."""
+        self.user.login(self.server, self.login, self.password)
+        was_successful = 'dashboard' in self.user.driver.current_url or \
+            'list' in self.user.driver.current_url or \
+            'calendar' in self.user.driver.current_url
+        assert(was_successful), 'Failed to log into %s' % self.server
+
+    @pytest.mark.skipif(str(202) not in TESTS, reason='Excluded')
+    def test_user_tutor_logout(self):
+        """Log out of Tutor"""
+        self.user.login(self.server, self.login, self.password)
+        self.user.logout()
+        was_successful = \
+            'http://cc.openstax.org/' in self.user.driver.current_url or \
+            'https://tutor-qa.openstax.org/?' in self.user.driver.current_url
+        assert(was_successful), 'Failed to log out of %s' % self.server
+
+    @pytest.mark.skipif(str(203) not in TESTS, reason='Excluded')
+    def test_user_accounts_login(self):
+        """Log into Accounts."""
+        accounts = self.server.replace('tutor', 'accounts')
+        self.user.login(accounts, self.login, self.password)
+        assert('profile' in self.user.driver.current_url), \
+            'Failed to log into %s' % accounts
+
+    @pytest.mark.skipif(str(204) not in TESTS, reason='Excluded')
+    def test_user_accounts_logout(self):
+        """Log out of Accounts."""
+        accounts = self.server.replace('tutor', 'accounts')
+        self.user.login(accounts, self.login, self.password)
+        self.user.logout()
+        assert('signin' in self.user.driver.current_url), \
+            'Failed to log out of %s' % accounts
+
+    @pytest.mark.skipif(str(205) not in TESTS, reason='Excluded')
+    def test_user_select_course_by_title(self):
+        """Select a course by its title."""
+        self.user.login(self.server, self.login, self.password)
+        courses = self.user.driver.find_elements(
+            By.CLASS_NAME,
+            'tutor-course-item'
+        )
+        course_number = randint(0, len(courses) - 1)
+        title = courses[course_number].text
+        Assignment.scroll_to(self.user.driver, courses[course_number])
+        self.user.select_course(title=title)
+        was_successful = 'courses' in self.user.driver.current_url or \
+            'list' in self.user.driver.current_url or \
+            'calendar' in self.user.driver.current_url or \
+            'contents' in self.user.driver.current_url
+        assert(was_successful), \
+            'Failed to select course in URL: %s' % self.user.driver.current_url
+        if 'contents' in self.user.driver.current_url:
+            return
+        course_name = self.user.driver.find_element(
+            By.CLASS_NAME,
+            'course-name'
+        ).text
+        assert(title == course_name), 'Failed to select course "%s"' % title
+
+    @pytest.mark.skipif(str(206) not in TESTS, reason='Excluded')
+    def test_user_select_course_by_appearance(self):
+        """Select a course by its appearance."""
+        self.user.login(self.server, self.login, self.password)
+        courses = self.user.driver.find_elements(
+            By.CLASS_NAME,
+            'tutor-booksplash-course-item'
+        )
+        course_number = randint(0, len(courses) - 1)
+        appearance = courses[course_number].get_attribute('data-appearance')
+        appearance_courses = self.user.driver.find_elements(
+                By.XPATH,
+                '//div[contains(@data-appearance,"%s")]' % appearance
+            )
+        title = ''
+        if isinstance(appearance_courses, list):
+            for course in appearance_courses:
+                title = title.join((' ', course.text))
+        else:
+            title = courses[course_number].text
+        Assignment.scroll_to(self.user.driver, courses[course_number])
+        self.user.select_course(appearance=appearance)
+        was_successful = 'courses' in self.user.driver.current_url or \
+            'list' in self.user.driver.current_url or \
+            'calendar' in self.user.driver.current_url or \
+            'contents' in self.user.driver.current_url
+        assert(was_successful), \
+            'Failed to select course in URL: %s' % self.user.driver.current_url
+        if 'contents' in self.user.driver.current_url:
+            return
+        course_name = self.user.driver.find_element(
+            By.CLASS_NAME,
+            'course-name'
+        ).text
+        assert(course_name in title), \
+            'Failed to select course "%s"' % course_name
+
+    @pytest.mark.skipif(str(207) not in TESTS, reason='Excluded')
+    def test_user_go_to_course_list(self):
         """No test placeholder."""
-        pass
+        self.user.login(self.server, self.login, self.password)
+        courses = self.user.driver.find_elements(
+            By.CLASS_NAME,
+            'tutor-course-item'
+        )
+        course_number = randint(0, len(courses) - 1)
+        Assignment.scroll_to(self.user.driver, courses[course_number])
+        self.user.select_course(title=courses[course_number].text)
+        was_successful = 'courses' in self.user.driver.current_url or \
+            'list' in self.user.driver.current_url or \
+            'calendar' in self.user.driver.current_url
+        assert(was_successful), 'Failed to select course'
+        self.user.goto_course_list()
+        course_picker = self.server + '/dashboard/'
+        assert(self.user.driver.current_url == course_picker), \
+            'Failed to return to the course picker'
+
+    @pytest.mark.skipif(str(208) not in TESTS, reason='Excluded')
+    def test_user_open_the_reference_book(self):
+        """No test placeholder."""
+        self.user.login(self.server, self.login, self.password)
+        main_window = self.user.driver.current_window_handle
+        courses = self.user.driver.find_elements(
+            By.CLASS_NAME,
+            'tutor-course-item'
+        )
+        course_number = randint(0, len(courses) - 1)
+        Assignment.scroll_to(self.user.driver, courses[course_number])
+        self.user.select_course(title=courses[course_number].text)
+        was_successful = 'courses' in self.user.driver.current_url or \
+            'list' in self.user.driver.current_url or \
+            'calendar' in self.user.driver.current_url
+        assert(was_successful), 'Failed to select course'
+        self.user.view_reference_book()
+        self.user.driver.switch_to_window(self.user.driver.window_handles[1])
+        WebDriverWait(self.user.driver, 60).until(
+            expect.presence_of_element_located(
+                (By.CLASS_NAME, 'center-panel')
+            )
+        )
+        assert('contents' in self.user.driver.current_url or
+               'books' in self.user.driver.current_url), \
+            'Failed to open the reference or WebView book.'
+        self.user.driver.close()
+        self.user.driver.switch_to_window(main_window)
+        was_successful = 'courses' in self.user.driver.current_url or \
+            'list' in self.user.driver.current_url or \
+            'calendar' in self.user.driver.current_url
+        assert(was_successful), 'Failed to return to the primary browser tab'
 
 
 class TestStaxingTutorTeacher(unittest.TestCase):
