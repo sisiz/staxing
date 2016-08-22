@@ -1,17 +1,18 @@
 ﻿"""Assignment helper functions for Selenium testing."""
 
+import calendar
+import datetime
+import inspect
 import random
 import string
 import time
-import inspect
-import datetime
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support import expected_conditions as expect
 from selenium.webdriver.support.ui import WebDriverWait
 
-__version__ = '0.0.26'
+__version__ = '0.0.27'
 
 
 class Assignment(object):
@@ -217,103 +218,165 @@ class Assignment(object):
 
     def open_assignment_menu(self, driver):
         """Open the Add Assignment menu if it is closed."""
-        try:
-            assignment_menu = driver.find_element(
-                By.XPATH, '//button[contains(@class,"dropdown-toggle")]')
-            # if the Add Assignment menu is not open
-            if 'open' not in assignment_menu.find_element(By.XPATH, '..'). \
-                    get_attribute('class'):
-                assignment_menu.click()
-        except:
+        driver.find_element(
+            By.XPATH,
+            '//button[contains(@class,"dropdown-toggle")]'
+        ).click()
+
+    def modify_time(self, time):
+        """Modify time string for react."""
+        string = time
+        string = str.replace(string, ':', '')
+        string = str.replace(string, ' ', '')
+        string = str.replace(string, 'm', '')
+        return string
+
+    def adjust_date_picker(self, driver, target, new_date):
+        """Rotate the date picker to the correct month and year."""
+        today = datetime.date.today()
+        target.click()
+        if today.year == new_date.year and today.month == new_date.month:
             return
+        months = {v: k for k, v in enumerate(calendar.month_name)}
+
+        previous_month = driver.find_element(
+            By.CLASS_NAME,
+            'datepicker__navigation--previous'
+        )
+        next_month = driver.find_element(
+            By.CLASS_NAME,
+            'datepicker__navigation--next'
+        )
+        current = driver.find_element(
+            By.CLASS_NAME,
+            'datepicker__current-month'
+        )
+        month, year = current.text.split(' ')
+        month = months[month]
+        year = int(year)
+
+        while year <= new_date.year and month < new_date.month:
+            next_month.click()
+            current = driver.find_element(
+                By.CLASS_NAME,
+                'datepicker__current-month'
+            )
+            month, year = current.text.split(' ')
+            month = months[month]
+            year = int(year)
+            time.sleep(1.0)
+        while year >= new_date.year and month > new_date.month:
+            previous_month.click()
+            current = driver.find_element(
+                By.CLASS_NAME,
+                'datepicker__current-month'
+            )
+            month, year = current.text.split(' ')
+            month = months[month]
+            year = int(year)
+            time.sleep(1.0)
+
+    def assign_time(self, driver, time,
+                    option=None, is_all=False, target='due'):
+        """Set the time for a particular period/section row."""
+        start = option if option else driver
+        path = '../..' if not is_all else ''
+        path += '//div[contains(@class,"-%s-time")]//input' % target
+        element = start.find_element(By.XPATH, path)
+        element.clear()
+        for char in self.modify_time(time):
+            element.send_keys(char)
+
+    def assign_date(self, driver, date,
+                    option=None, is_all=False, target='due'):
+        """Set the date for a particular period/section row."""
+        start = option if option else driver
+        path = '../..' if not is_all else ''
+        path += '//div[contains(@class,"-%s-date")]' % target
+        path += '//div[contains(@class,"datepicker__input")]//input'
+        date_element = start.find_element(By.XPATH, path)
+        # get calendar to correct month
+        split = date.split('/')
+        change = datetime.date(int(split[2]), int(split[0]), int(split[1]))
+        time.sleep(0.15)
+        self.adjust_date_picker(driver, date_element, change)
+        driver.find_element(
+            By.XPATH,
+            '//div[contains(@class,"datepicker__day") and text()="%s"]' %
+            change.day
+        ).click()
 
     def assign_periods(self, driver, periods):
-        """Assign open and close dates."""
-        # assign the same dates for all periods
-        today = datetime.date.today()
+        """Assign dates and times to particular periods/sections."""
+        # prepare assignment for all periods/sections together
         if 'all' in periods:
+            # activate the collective time/date panel
             driver.find_element(By.ID, 'hide-periods-radio').click()
+            opens_at = None
+            closes_at = None
             opens_on, closes_on = periods['all']
-            today = datetime.date.today()
-            driver.find_element(
-                By.XPATH, '//div[contains(@class,"-due-date")]' +
-                '//div[contains(@class,"datepicker__input")]'
-            ).click()
-            # get calendar to correct month
-            month = today.month
-            year = today.year
-            while (month != int(closes_on[:2]) or year != int(closes_on[6:])):
-                driver.find_element(
-                    By.XPATH,
-                    '//a[contains(@class,"navigation--next")]'
-                ).click()
-                if month != 12:
-                    month += 1
-                else:
-                    month = 1
-                    year += 1
-            driver.find_element(
-                By.XPATH, '//div[contains(@class,"datepicker__day")' +
-                'and contains(text(),"' + (closes_on[3:5]).lstrip('0') + '")]'
-            ).click()
-            time.sleep(0.5)
-            driver.find_element(
-                By.CLASS_NAME,
-                'assign-to-label'
-            ).click()
-            driver.find_element(
-                By.XPATH, '//div[contains(@class,"-open-date")]' +
-                '//div[contains(@class,"datepicker__input")]'
-            ).click()
-            # get calendar to correct month
-            month = today.month
-            year = today.year
-            while (month != int(opens_on[:2]) or year != int(opens_on[6:])):
-                driver.find_element(
-                    By.XPATH,
-                    '//a[contains(@class,"navigation--next")]'
-                ).click()
-                if month != 12:
-                    month += 1
-                else:
-                    month = 1
-                    year += 1
-            driver.find_element(
-                By.XPATH, '//div[contains(@class,"datepicker__day")' +
-                'and contains(text(),"' + (opens_on[3:5]).lstrip('0') + '")]'
-            ).click()
-            time.sleep(0.5)
-            driver.find_element(
-                By.CLASS_NAME,
-                'assign-to-label'
-            ).click()
+            if isinstance(opens_on, tuple):
+                opens_on, opens_at = opens_on
+            if isinstance(closes_on, tuple):
+                closes_on, closes_at = closes_on
+            self.assign_date(driver=driver, date=closes_on,
+                             is_all=True, target='due')
+            self.assign_date(driver=driver, date=opens_on,
+                             is_all=True, target='open')
+            if closes_at:
+                self.assign_time(driver=driver, time=closes_at,
+                                 is_all=True, target='due')
+            if opens_at:
+                self.assign_time(driver=driver, time=opens_at,
+                                 is_all=True, target='open')
             return
-        # or set the dates for each period: {period: (open, close)}
-        count = 0
-        last = len(periods)
-        for period in periods:
-            count += 1
-            if count > last:
-                break
-                if periods[period] is 'all' or period is 'skip':
-                    continue
-                opens_on, closes_on = periods[period]
+        # or locate important elements for each period/section
+        options = {}
+        # activate the individual period time/date panel
+        driver.find_element(By.ID, 'show-periods-radio').click()
+        period_boxes = driver.find_elements(
+            By.XPATH,
+            '//input[contains(@id,"period-toggle-period")]'
+        )
+        for period in period_boxes:
+            options[
                 driver.find_element(
                     By.XPATH,
-                    '//input[@id="period-toggle-%s"]' % count +
-                    '/../following-sibling::div/following-sibling::div' +
-                    '//input[contains(@class,"picker")]'
-                ).send_keys(closes_on)
-                time.sleep(0.5)
-                driver.find_element(By.CLASS_NAME, 'assign-to-label').click()
-                driver.find_element(
-                    By.XPATH,
-                    '//input[@id="period-toggle-%s"]' % count +
-                    '/../following-sibling::div' +
-                    '//input[contains(@class,"picker")]'
-                ).send_keys(opens_on)
-                time.sleep(0.5)
-                driver.find_element(By.CLASS_NAME, 'assign-to-label').click()
+                    '//label[@for="%s"]' % period.get_attribute('id')
+                ).text
+            ] = period
+        for period in options:
+            print('Period:', period)
+            # activate or deactivate a specific period/section row
+            if period not in periods:
+                if not options[period].is_displayed():
+                    driver.execute_script(
+                        "return arguments[0].scrollIntoView();",
+                        options[period]
+                    )
+                if options[period].get_attribute('checked') is not None:
+                    options[period].click()
+                continue
+            if options[period].get_attribute('checked') is None:
+                options[period].click()
+            # set dates
+            opens_at = None
+            closes_at = None
+            opens_on, closes_on = periods[period]
+            if isinstance(opens_on, tuple):
+                opens_on, opens_at = opens_on
+            if isinstance(closes_on, tuple):
+                closes_on, closes_at = closes_on
+            self.assign_date(driver=driver, date=closes_on,
+                             option=options[period], target='due')
+            self.assign_date(driver=driver, date=opens_on,
+                             option=options[period], target='open')
+            if closes_at:
+                self.assign_time(driver=driver, time=closes_at,
+                                 option=options[period], target='due')
+            if opens_at:
+                self.assign_time(driver=driver, time=opens_at,
+                                 option=options[period], target='open')
 
     def select_status(self, driver, status):
         """Select assignment status."""
@@ -791,11 +854,6 @@ class Assignment(object):
             return
         self.select_status(driver, status)
 
-    def add_new_review(self, driver, title, description, periods, assessments,
-                       assignment_url, status):
-        """Add a review assignment."""
-        raise NotImplementedError(inspect.currentframe().f_code.co_name)
-
     def change_reading(self, driver, title, description='', periods={},
                        readings=[], status=DRAFT):
         """Edit a reading assignment."""
@@ -833,3 +891,50 @@ class Assignment(object):
     def delete_event(self, driver, title, description, periods, status):
         """Delete an event."""
         raise NotImplementedError(inspect.currentframe().f_code.co_name)
+
+
+if __name__ == '__main__':
+    # Test Assignment work
+    import os
+    from selenium import webdriver
+
+    driver = webdriver.Chrome()
+    driver.set_window_size(1300, 768)
+    driver.get('https://tutor-qa.openstax.org/')
+    driver.find_element(By.LINK_TEXT, 'Login').click()
+    driver.find_element(By.ID, 'auth_key'). \
+        send_keys(os.getenv('TEACHER_USER'))
+    driver.find_element(By.ID, 'password'). \
+        send_keys(os.getenv('TEACHER_PASSWORD'))
+    driver.find_element(
+            By.XPATH, '//button[text()="Sign in"]'
+        ).click()
+    WebDriverWait(driver, 20).until(
+            expect.element_to_be_clickable(
+                (
+                    By.XPATH, '//div[@data-%s="%s"]//a' %
+                    ('title', 'HS Physics')
+                )
+            )
+        ).click()
+    driver.find_element(
+            By.XPATH,
+            '//button[contains(@class,"dropdown-toggle")]'
+        ).click()
+    time.sleep(0.5)
+    driver.find_element(By.LINK_TEXT, 'Add Reading').click()
+    test_periods = {
+        '1st': ('9/10/2016', '9/15/2016'),
+        '2nd': ('9/12/2016', '9/17/2016'),
+        '3rd': (('9/14/2016', '4:00 am'), '9/19/2016'),
+        'all': ('10/11/2016', '10/14/2016'),
+    }
+    periods = {
+        '1st': ('9/12/2016', '9/17/2016'),
+        '2nd': (('9/14/2016', '8:00a'), ('9/19/2016', '800p')),
+        '3rd': ('9/16/2016', ('9/21/2016', '8:00 pm')),
+        'test': ('8/20/2016', '8/22/2016'),
+        'all': (('10/11/2016', '1000a'), ('10/14/2016', '1000p')),
+    }
+    assign = Assignment()
+    assign.assign_periods(driver=driver, periods=periods)

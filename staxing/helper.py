@@ -8,7 +8,6 @@ import re
 from autochomsky import chomsky
 from builtins import FileNotFoundError
 from itertools import repeat
-# from pastasauce import PastaSauce
 from random import randint
 from requests import HTTPError
 from selenium import webdriver
@@ -31,7 +30,7 @@ try:
 except ImportError:
     from page_load import SeleniumWait as Page
 
-__version__ = '0.0.25'
+__version__ = '0.0.26'
 
 
 class Helper(object):
@@ -370,6 +369,38 @@ class User(Helper):
             By.XPATH, '//button[text()="Sign in"]'
         ).click()
         self.page.wait_for_page_load()
+        # check if a password change is required
+        if 'Reset Password' in self.driver.page_source:
+            try:
+                self.driver.find_element(
+                    By.ID,
+                    'reset_password_password'
+                ).send_keys(self.password)
+                self.driver.find_element(
+                    By.ID,
+                    'reset_password_password_confirmation'
+                ).send_keys(self.password)
+                self.driver.find_element(
+                    By.XPATH,
+                    '//input[@value="Set Password"]'
+                ).click()
+            except Exception as e:
+                raise e
+        self.page.wait_for_page_load()
+        if 'Terms of Use' in self.driver.page_source:
+            try:
+                self.driver.find_element(By.ID, 'i_agree').click()
+                self.driver.find_element(By.ID, 'agreement_submit').click()
+            except Exception as e:
+                raise e
+        self.page.wait_for_page_load()
+        if 'Privacy Policy' in self.driver.page_source:
+            try:
+                self.driver.find_element(By.ID, 'i_agree').click()
+                self.driver.find_element(By.ID, 'agreement_submit').click()
+            except Exception as e:
+                raise e
+        self.page.wait_for_page_load()
 
     def logout(self):
         """Logout control."""
@@ -462,8 +493,12 @@ class User(Helper):
     def select_course(self, title=None, appearance=None):
         """Select course."""
         if 'dashboard' not in self.driver.current_url:
+            # If not at the dashboard, try to load it
             self.goto_course_list()
             self.page.wait_for_page_load()
+        if 'dashboard' not in self.driver.current_url:
+            # Only has one course and the user is at the dashboard so return
+            return
         if title:
             uses_option = 'title'
             course = title
@@ -539,15 +574,15 @@ class Teacher(User):
         assign.add[assignment](
             driver=self.driver,
             name=args['title'],
-            description=args['description'],
+            description=args['description'] if 'description' in args else '',
             periods=args['periods'],
             state=args['status'],
             url=args['url'] if 'url' in args else None,
             reading_list=args['reading_list'] if 'reading_list' in args else
             None,
             problems=args['problems'] if 'problems' in args else None,
-            feedback=args['feedback'] if 'feedback' in args else None, 
-       )
+            feedback=args['feedback'] if 'feedback' in args else None
+        )
 
     def change_assignment(self, assignment, args):
         """Alter an existing assignment."""
@@ -561,9 +596,9 @@ class Teacher(User):
             url=args['url'] if 'url' in args else None,
             reading_list=args['reading_list'] if 'reading_list' in args else
             None,
-            problems=args['problems'] if 'problems' in args else None,    
+            problems=args['problems'] if 'problems' in args else None,
             feedback=args['feedback'] if 'feedback' in args else None,
-       )
+        )
 
     def delete_assignment(self, assignment, args):
         """Delete an existing assignment (if available)."""
@@ -571,15 +606,15 @@ class Teacher(User):
         assign.remove[assignment](
             driver=self.driver,
             name=args['title'],
-            description=args['description'],
-            periods=args['periods'],
-            state=args['status'],
+            description=args['description'] if 'description' in args else None,
+            periods=args['periods'] if 'periods' in args else None,
+            state=args['status'] if 'status' in args else None,
             url=args['url'] if 'url' in args else None,
             reading_list=args['reading_list'] if 'reading_list' in args else
             None,
             problems=args['problems'] if 'problems' in args else None,
             feedback=args['feedback'] if 'feedback' in args else None,
-       )
+        )
 
     def goto_menu_item(self, item):
         """Go to a specific user menu item."""
@@ -688,6 +723,38 @@ class Teacher(User):
         )
         print('Exit: get_enrollment_code')
         return '%s' % code.text.strip()
+
+    def get_book_sections(self):
+        """Return a list of book sections."""
+        self.goto_calendar()
+        self.page.wait_for_page_load()
+        self.driver.find_element(By.ID, 'add-assignment').click()
+        self.wait.until(
+            expect.element_to_be_clickable(
+                (By.LINK_TEXT, 'Add Reading')
+            )
+        ).click()
+        self.page.wait_for_page_load()
+        selector = self.driver.find_element(By.ID, 'reading-select')
+        Assignment.scroll_to(self.driver, selector)
+        sleep(1.0)
+        selector.click()
+        self.page.wait_for_page_load()
+        for chapter in self.driver.find_elements(By.XPATH,
+                                                 '//a[@href="#" and span]'):
+            if chapter.get_attribute('aria-expanded') != 'true':
+                Assignment.scroll_to(self.driver, chapter)
+                sleep(0.25)
+                chapter.click()
+        sections = self.driver.find_elements(
+            By.XPATH,
+            '//div[@class="section"]/span[@class="chapter-section"]'
+        )
+        section_list = []
+        for section in sections:
+            section_list.append(section.text)
+        self.goto_calendar()
+        return section_list
 
 
 class Student(User):
