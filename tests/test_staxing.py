@@ -7,26 +7,25 @@ import time
 import unittest
 
 from random import randint
+from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.by import By
-# from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as expect
 from selenium.webdriver.support.ui import WebDriverWait
 from staxing.assignment import Assignment
 from staxing.helper import Helper, Teacher, Student, Admin, ContentQA, User
-# from staxing.page_load import SeleniumWait
 
-__version__ = '0.0.3'
+__version__ = '0.0.4'
 TESTS = os.getenv(
     'CASELIST',
     str([
         101, 102, 103, 104, 105, 106,
         201, 202, 203, 204, 205, 206, 207, 208,
-        301,
-        401,
-        501,
-        601,
-        701,
-        801,
+        301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311,
+        # 401,
+        # 501,
+        # 601,
+        # 701,
+        # 801,
     ])
 )
 
@@ -139,8 +138,9 @@ class TestStaxingUser(unittest.TestCase):
     def setUp(self):
         """Pretest settings."""
         self.user = User('', '', '')
+        self.user.set_window_size(height=700, width=1200)
         self.server = ''.join(('https://', os.getenv('SERVER_URL')))
-        self.login = os.getenv('STUDENT_USER')
+        self.login = os.getenv('STUDENT_USER_MULTI')
         self.password = os.getenv('STUDENT_PASSWORD')
 
     def tearDown(self):
@@ -190,11 +190,13 @@ class TestStaxingUser(unittest.TestCase):
     def test_user_select_course_by_title(self):
         """Select a course by its title."""
         self.user.login(self.server, self.login, self.password)
+        print(self.user.current_url())
         courses = self.user.driver.find_elements(
             By.CLASS_NAME,
             'tutor-course-item'
         )
-        course_number = randint(0, len(courses) - 1)
+        course_number = 0 if len(courses) <= 1 \
+            else randint(1, len(courses)) - 1
         title = courses[course_number].text
         Assignment.scroll_to(self.user.driver, courses[course_number])
         self.user.select_course(title=title)
@@ -220,7 +222,8 @@ class TestStaxingUser(unittest.TestCase):
             By.CLASS_NAME,
             'tutor-booksplash-course-item'
         )
-        course_number = randint(0, len(courses) - 1)
+        course_number = 0 if len(courses) <= 1 \
+            else randint(1, len(courses)) - 1
         appearance = courses[course_number].get_attribute('data-appearance')
         appearance_courses = self.user.driver.find_elements(
                 By.XPATH,
@@ -257,7 +260,8 @@ class TestStaxingUser(unittest.TestCase):
             By.CLASS_NAME,
             'tutor-course-item'
         )
-        course_number = randint(0, len(courses) - 1)
+        course_number = 0 if len(courses) <= 1 \
+            else randint(1, len(courses)) - 1
         Assignment.scroll_to(self.user.driver, courses[course_number])
         self.user.select_course(title=courses[course_number].text)
         was_successful = 'courses' in self.user.driver.current_url or \
@@ -278,7 +282,8 @@ class TestStaxingUser(unittest.TestCase):
             By.CLASS_NAME,
             'tutor-course-item'
         )
-        course_number = randint(0, len(courses) - 1)
+        course_number = 0 if len(courses) <= 1 \
+            else randint(1, len(courses)) - 1
         Assignment.scroll_to(self.user.driver, courses[course_number])
         self.user.select_course(title=courses[course_number].text)
         was_successful = 'courses' in self.user.driver.current_url or \
@@ -309,6 +314,11 @@ class TestStaxingTutorTeacher(unittest.TestCase):
     def setUp(self):
         """Pretest settings."""
         self.teacher = Teacher(use_env_vars=True)
+        self.teacher.username = os.getenv('TEACHER_USER_MULTI',
+                                          self.teacher.username)
+        self.teacher.set_window_size(height=700, width=1200)
+        self.teacher.login()
+        self.teacher.select_course(title='High School Physics')
 
     def tearDown(self):
         """Test destructor."""
@@ -318,7 +328,302 @@ class TestStaxingTutorTeacher(unittest.TestCase):
             pass
 
     @pytest.mark.skipif(str(301) not in TESTS, reason='Excluded')
-    def test_base_case(self):
+    def test_add_reading_assignment_individual_publish(self):
+        """Build reading assignments."""
+        # Reading, individual periods, publish
+        assignment_title = 'Reading-%s' % Assignment.rword(5)
+        left = randint(5, 20)
+        right = left + randint(1, 10)
+        start_date_1 = self.teacher.date_string(day_delta=left)
+        end_date_1 = self.teacher.date_string(day_delta=left + right)
+        start_date_2 = self.teacher.date_string(day_delta=left + 1)
+        end_date_2 = self.teacher.date_string(day_delta=left + right + 1)
+        start_time_2 = '6:30 am'
+        end_time_2 = '11:59 pm'
+        start_date_3 = self.teacher.date_string(day_delta=left + 2)
+        end_date_3 = self.teacher.date_string(day_delta=left + right + 2)
+        reading_options = self.teacher.get_book_sections()
+        reading_start = randint(0, (len(reading_options) - 1))
+        reading_end = reading_start + randint(1, 5)
+        reading_list = reading_options[reading_start:reading_end]
+        self.teacher.add_assignment(
+            assignment='reading',
+            args={
+                'title': assignment_title,
+                'description': 'Staxing test reading - individual periods - ' +
+                               'publish',
+                'periods': {
+                    'First': (start_date_1, end_date_1),
+                    'Second': ((start_date_2, start_time_2),
+                               (end_date_2, end_time_2)),
+                    'Third': (start_date_3, end_date_3),
+                },
+                'reading_list': reading_list,
+                'status': 'publish',
+                'break_point': None,
+            }
+        )
+        assert('courses' in self.teacher.current_url()), \
+            'Not at dashboard'
+        self.teacher.rotate_calendar(end_date_1)
+        reading = self.teacher.find(
+            By.XPATH,
+            '//label[text()="%s"]' % assignment_title
+        )
+        time.sleep(5.0)
+        assert(reading), '%s not publishing on %s' % (assignment_title,
+                                                      end_date_3)
+
+    @pytest.mark.skipif(str(302) not in TESTS, reason='Excluded')
+    def test_add_reading_assignment_all_publish(self):
+        """Build reading assignments."""
+        # Reading, all periods, publish
+        assignment_title = 'Reading-%s' % Assignment.rword(5)
+        left = randint(5, 20)
+        right = left + randint(1, 10)
+        start_date_1 = self.teacher.date_string(day_delta=left)
+        end_date_1 = self.teacher.date_string(day_delta=left + right)
+        start_date_2 = self.teacher.date_string(day_delta=left + 1)
+        end_date_2 = self.teacher.date_string(day_delta=left + right + 1)
+        reading_options = self.teacher.get_book_sections()
+        reading_start = randint(0, (len(reading_options) - 1))
+        reading_end = reading_start + randint(1, 5)
+        reading_list = reading_options[reading_start:reading_end]
+        self.teacher.add_assignment(
+            assignment='reading',
+            args={
+                'title': assignment_title,
+                'description': 'Staxing test reading - all periods - publish',
+                'periods': {
+                    'First': (start_date_1, end_date_1),
+                    'all': (start_date_2, end_date_2),
+                },
+                'reading_list': reading_list,
+                'status': 'publish',
+                'break_point': None,
+            }
+        )
+        assert('courses' in self.teacher.current_url()), \
+            'Not at dashboard'
+        self.teacher.rotate_calendar(end_date_1)
+        reading = self.teacher.find(
+            By.XPATH,
+            '//label[text()="%s"]' % assignment_title
+        )
+        time.sleep(5.0)
+        assert(reading), '%s not publishing on %s' % (assignment_title,
+                                                      end_date_2)
+
+    @pytest.mark.skipif(str(303) not in TESTS, reason='Excluded')
+    def test_add_reading_assignment_individual_draft(self):
+        """Build reading assignments."""
+        # Reading, individual periods, draft
+        assignment_title = 'Reading-%s' % Assignment.rword(5)
+        left = randint(5, 20)
+        right = left + randint(1, 10)
+        start_date_1 = self.teacher.date_string(day_delta=left)
+        end_date_1 = self.teacher.date_string(day_delta=left + right)
+        start_date_2 = self.teacher.date_string(day_delta=left + 1)
+        end_date_2 = self.teacher.date_string(day_delta=left + right + 1)
+        start_date_3 = self.teacher.date_string(day_delta=left + 2)
+        end_date_3 = self.teacher.date_string(day_delta=left + right + 2)
+        reading_options = self.teacher.get_book_sections()
+        reading_start = randint(0, (len(reading_options) - 1))
+        reading_end = reading_start + randint(1, 5)
+        reading_list = reading_options[reading_start:reading_end]
+        self.teacher.add_assignment(
+            assignment='reading',
+            args={
+                'title': assignment_title,
+                'description': 'Staxing test reading - individual periods ' +
+                               '- draft',
+                'periods': {
+                    'First': (start_date_1, end_date_1),
+                    'Second': (start_date_2, end_date_2),
+                    'Third': (start_date_3, end_date_3),
+                },
+                'reading_list': reading_list,
+                'status': 'draft',
+                'break_point': None,
+            }
+        )
+        assert('courses' in self.teacher.current_url()), \
+            'Not at dashboard'
+        self.teacher.rotate_calendar(end_date_1)
+        reading = self.teacher.find(
+            By.XPATH,
+            '//label[text()="%s"]' % assignment_title
+        )
+        time.sleep(5.0)
+        assert(reading), '%s not publishing on %s' % (assignment_title,
+                                                      end_date_3)
+
+    @pytest.mark.skipif(str(304) not in TESTS, reason='Excluded')
+    def test_add_reading_assignment_all_draft(self):
+        """Build reading assignments."""
+        # Reading, all periods, draft
+        assignment_title = 'Reading-%s' % Assignment.rword(5)
+        left = randint(5, 20)
+        right = left + randint(1, 10)
+        start_date_1 = self.teacher.date_string(day_delta=left)
+        end_date_1 = self.teacher.date_string(day_delta=left + right)
+        reading_options = self.teacher.get_book_sections()
+        reading_start = randint(0, (len(reading_options) - 1))
+        reading_end = reading_start + randint(1, 5)
+        reading_list = reading_options[reading_start:reading_end]
+        self.teacher.add_assignment(
+            assignment='reading',
+            args={
+                'title': assignment_title,
+                'description': 'Staxing test reading - all periods - draft',
+                'periods': {
+                    'all': (start_date_1, end_date_1),
+                },
+                'reading_list': reading_list,
+                'status': 'draft',
+                'break_point': None,
+            }
+        )
+        assert('courses' in self.teacher.current_url()), \
+            'Not at dashboard'
+        self.teacher.rotate_calendar(end_date_1)
+        reading = self.teacher.find(
+            By.XPATH,
+            '//label[text()="%s"]' % assignment_title
+        )
+        time.sleep(5.0)
+        assert(reading), '%s not publishing on %s' % (assignment_title,
+                                                      end_date_1)
+
+    @pytest.mark.skipif(str(305) not in TESTS, reason='Excluded')
+    def test_add_reading_assignment_one_cancel(self):
+        """Build reading assignments."""
+        # Reading, one period, cancel
+        assignment_title = 'Reading-%s' % Assignment.rword(5)
+        left = randint(5, 20)
+        right = left + randint(1, 10)
+        start_date_1 = self.teacher.date_string(day_delta=left)
+        end_date_1 = self.teacher.date_string(day_delta=left + right)
+        reading_options = self.teacher.get_book_sections()
+        reading_start = randint(0, (len(reading_options) - 1))
+        reading_end = reading_start + randint(1, 5)
+        reading_list = reading_options[reading_start:reading_end]
+        self.teacher.add_assignment(
+            assignment='reading',
+            args={
+                'title': assignment_title,
+                'description': 'Staxing test reading - cancel',
+                'periods': {
+                    'First': (start_date_1, end_date_1),
+                },
+                'reading_list': reading_list,
+                'status': 'cancel',
+                'break_point': None,
+            }
+        )
+        assert('courses' in self.teacher.current_url()), \
+            'Not at dashboard'
+        self.teacher.rotate_calendar(end_date_1)
+        time.sleep(5.0)
+        with pytest.raises(NoSuchElementException):
+            self.teacher.find(
+                By.XPATH,
+                '//label[text()="%s"]' % assignment_title
+            )
+
+    @pytest.mark.skipif(str(306) not in TESTS, reason='Excluded')
+    def test_change_assignment(self):
+        """No test placeholder."""
+        pass
+
+    @pytest.mark.skipif(str(307) not in TESTS, reason='Excluded')
+    def test_delete_assignment(self):
+        """No test placeholder."""
+        assignment_title = 'Reading-%s' % Assignment.rword(5)
+        start_date = self.teacher.date_string(day_delta=1)
+        end_date = self.teacher.date_string(day_delta=3)
+        self.teacher.add_assignment(
+            assignment='reading',
+            args={
+                'title': assignment_title,
+                'periods': {
+                    'all': (start_date, end_date),
+                },
+                'reading_list': ['1', '1.1'],
+                'status': 'draft',
+                'break_point': None,
+            }
+        )
+        assert('courses' in self.teacher.current_url()), \
+            'Not at dashboard'
+        self.teacher.rotate_calendar(end_date)
+        reading = self.teacher.find(
+            By.XPATH,
+            '//label[text()="%s"]' % assignment_title
+        )
+        time.sleep(5.0)
+        assert(reading), \
+            '%s not publishing on %s' % (assignment_title, end_date)
+        new_date = start_date.split('/')
+        new_date = '%s/%s' % (int(new_date[0]), int(new_date[1]))
+        self.teacher.wait.until(
+            expect.presence_of_element_located(
+                (By.XPATH,
+                 '//label[@data-title="%s" and @data-opens-at="%s"]' %
+                 (assignment_title, new_date))
+            )
+        )
+        self.teacher.delete_assignment(
+            assignment='reading',
+            args={
+                'title': assignment_title,
+            }
+        )
+        self.teacher.rotate_calendar(end_date)
+        time.sleep(5.0)
+        with pytest.raises(NoSuchElementException):
+            self.teacher.find(
+                By.XPATH,
+                '//label[text()="%s"]' % assignment_title
+            )
+
+    @pytest.mark.skipif(str(308) not in TESTS, reason='Excluded')
+    def test_goto_menu_item(self):
+        """No test placeholder."""
+        pass
+
+    @pytest.mark.skipif(str(309) not in TESTS, reason='Excluded')
+    def test_goto_calendar(self):
+        """No test placeholder."""
+        pass
+
+    @pytest.mark.skipif(str(310) not in TESTS, reason='Excluded')
+    def test_goto_performance_forecast(self):
+        """No test placeholder."""
+        pass
+
+    @pytest.mark.skipif(str(311) not in TESTS, reason='Excluded')
+    def test_goto_student_scores(self):
+        """No test placeholder."""
+        pass
+
+    @pytest.mark.skipif(str(312) not in TESTS, reason='Excluded')
+    def test_goto_course_roster(self):
+        """No test placeholder."""
+        pass
+
+    @pytest.mark.skipif(str(313) not in TESTS, reason='Excluded')
+    def test_goto_course_settings(self):
+        """No test placeholder."""
+        pass
+
+    @pytest.mark.skipif(str(314) not in TESTS, reason='Excluded')
+    def test_add_course_section(self):
+        """No test placeholder."""
+        pass
+
+    @pytest.mark.skipif(str(315) not in TESTS, reason='Excluded')
+    def test_get_enrollment_code(self):
         """No test placeholder."""
         pass
 
@@ -329,6 +634,7 @@ class TestStaxingConceptCoachTeacher(unittest.TestCase):
     def setUp(self):
         """Pretest settings."""
         self.teacher = Teacher(username='', password='', site='')
+        self.teacher.set_window_size(height=700, width=1200)
 
     def tearDown(self):
         """Test destructor."""
@@ -337,10 +643,10 @@ class TestStaxingConceptCoachTeacher(unittest.TestCase):
         except:
             pass
 
-    @pytest.mark.skipif(str(401) not in TESTS, reason='Excluded')
-    def test_base_case(self):
-        """No test placeholder."""
-        pass
+    # @pytest.mark.skipif(str(301) not in TESTS, reason='Excluded')
+    # def test_base_case(self):
+    #     """No test placeholder."""
+    #     pass
 
 
 class TestStaxingTutorStudent(unittest.TestCase):
@@ -349,6 +655,7 @@ class TestStaxingTutorStudent(unittest.TestCase):
     def setUp(self):
         """Pretest settings."""
         self.student = Student(use_env_vars=True)
+        self.student.set_window_size(height=700, width=1200)
 
     def tearDown(self):
         """Test destructor."""
@@ -357,10 +664,10 @@ class TestStaxingTutorStudent(unittest.TestCase):
         except:
             pass
 
-    @pytest.mark.skipif(str(501) not in TESTS, reason='Excluded')
-    def test_base_case(self):
-        """No test placeholder."""
-        pass
+    # @pytest.mark.skipif(str(501) not in TESTS, reason='Excluded')
+    # def test_base_case(self):
+    #     """No test placeholder."""
+    #     pass
 
 
 class TestStaxingConceptCoachStudent(unittest.TestCase):
@@ -369,6 +676,7 @@ class TestStaxingConceptCoachStudent(unittest.TestCase):
     def setUp(self):
         """Pretest settings."""
         self.student = Student(use_env_vars=True)
+        self.student.set_window_size(height=700, width=1200)
 
     def tearDown(self):
         """Test destructor."""
@@ -377,10 +685,10 @@ class TestStaxingConceptCoachStudent(unittest.TestCase):
         except:
             pass
 
-    @pytest.mark.skipif(str(601) not in TESTS, reason='Excluded')
-    def test_base_case(self):
-        """No test placeholder."""
-        pass
+    # @pytest.mark.skipif(str(601) not in TESTS, reason='Excluded')
+    # def test_base_case(self):
+    #     """No test placeholder."""
+    #     pass
 
 
 class TestStaxingAdmin(unittest.TestCase):
@@ -389,6 +697,7 @@ class TestStaxingAdmin(unittest.TestCase):
     def setUp(self):
         """Pretest settings."""
         self.admin = Admin(use_env_vars=True)
+        self.admin.set_window_size(height=700, width=1200)
 
     def tearDown(self):
         """Test destructor."""
@@ -397,10 +706,10 @@ class TestStaxingAdmin(unittest.TestCase):
         except:
             pass
 
-    @pytest.mark.skipif(str(701) not in TESTS, reason='Excluded')
-    def test_base_case(self):
-        """No test placeholder."""
-        pass
+    # @pytest.mark.skipif(str(701) not in TESTS, reason='Excluded')
+    # def test_base_case(self):
+    #     """No test placeholder."""
+    #     pass
 
 
 class TestStaxingContentQA(unittest.TestCase):
@@ -409,6 +718,7 @@ class TestStaxingContentQA(unittest.TestCase):
     def setUp(self):
         """Pretest settings."""
         self.content = ContentQA(use_env_vars=True)
+        self.content.set_window_size(height=700, width=1200)
 
     def tearDown(self):
         """Test destructor."""
@@ -417,7 +727,7 @@ class TestStaxingContentQA(unittest.TestCase):
         except:
             pass
 
-    @pytest.mark.skipif(str(801) not in TESTS, reason='Excluded')
-    def test_base_case(self):
-        """No test placeholder."""
-        pass
+    # @pytest.mark.skipif(str(801) not in TESTS, reason='Excluded')
+    # def test_base_case(self):
+    #     """No test placeholder."""
+    #     pass

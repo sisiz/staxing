@@ -1,5 +1,6 @@
 """OpenStax Python helper for common actions."""
 
+import calendar
 import datetime
 import inspect
 import os
@@ -755,6 +756,47 @@ class Teacher(User):
             section_list.append(section.text)
         self.goto_calendar()
         return section_list
+
+    def get_month_number(self, month):
+        """Take a string month and return its numberic."""
+        months = {v: k for k, v in enumerate(calendar.month_name)}
+        return months[month]
+
+    def get_month_year(self):
+        """Break a date string into a month year tuple."""
+        calendar_heading = WebDriverWait(self.driver, 2).until(
+            expect.visibility_of_element_located(
+                (By.XPATH,
+                 '//div[contains(@class,"calendar-header-label")]/span')
+            )
+        ).text
+        month, year = calendar_heading.split(' ')
+        return self.get_month_number(month), int(year)
+
+    def rotate_calendar(self, target):
+        """Rotate the teacher calendar to a specific month and year."""
+        cal_month, cal_year = self.get_month_year()
+        target_date = datetime.datetime.strptime(target, '%m/%d/%Y').date()
+        if cal_year == target_date.year and \
+                cal_month == target_date.month:
+            return
+        cal_month, cal_year = self.get_month_year()
+        while cal_year < target_date.year:
+            self.driver.find_element(By.CLASS_NAME, 'fa-caret-right').click()
+            sleep(0.2)
+            cal_month, cal_year = self.get_month_year()
+        while cal_month < target_date.month:
+            self.driver.find_element(By.CLASS_NAME, 'fa-caret-right').click()
+            sleep(0.2)
+            cal_month, cal_year = self.get_month_year()
+        while cal_year > target_date.year:
+            self.driver.find_element(By.CLASS_NAME, 'fa-caret-left').click()
+            sleep(0.2)
+            cal_month, cal_year = self.get_month_year()
+        while cal_month > target_date.month:
+            self.driver.find_element(By.CLASS_NAME, 'fa-caret-left').click()
+            sleep(0.2)
+            cal_month, cal_year = self.get_month_year()
 
 
 class Student(User):
