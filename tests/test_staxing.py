@@ -577,6 +577,9 @@ class TestStaxingTutorTeacher(unittest.TestCase):
             assignment='reading',
             args={
                 'title': assignment_title,
+                'periods': {
+                    'all': (start_date, end_date),
+                },
             }
         )
         self.teacher.rotate_calendar(end_date)
