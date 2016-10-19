@@ -551,38 +551,23 @@ class Assignment(object):
             pass
         rows = driver.find_elements(
             By.XPATH,
-            '//div[contains(@class,"add-exercise-list")]/*[@class="row"]')
+            '//div[contains(@class,"exercise-sections")]')
         for row in rows:
-            children = row.find_elements(By.XPATH, './*')
+            children = row.find_elements(
+                By.XPATH,
+                './/div[@class="exercises"]//span[contains(text(),"ID:")]')
+            section = row.find_element(
+                By.XPATH,
+                './label/span[@class="chapter-section"]').text
+
             if len(children) == 0:
                 # print('FAQ - No children tags')
-                continue
-            elif len(children) == 1:
-                try:
-                    section = children[0].find_element(
-                        By.XPATH,
-                        './/span[@class="chapter-section"]').text
-                    questions[section] = []
-                except:
-                    question = children[0].find_element(
-                        By.XPATH,
-                        './/span[contains(text(),"@")]').text
-                    question = question.split(' ')[1]
-                    questions[section].append(question)
+                questions[section] = []
             else:
-                question = children[0].find_element(
-                    By.XPATH,
-                    './/span[contains(text(),"@")]').text
-                question = question.split(' ')[1]
-                questions[section].append(question)
-                try:
-                    question = children[1].find_element(
-                        By.XPATH,
-                        './/span[contains(text(),"@")]').text
-                    question = question.split(' ')[1]
+                questions[section] = []
+                for q in children:
+                    question = q.text.split(' ')[1]
                     questions[section].append(question)
-                except:
-                    pass
         return questions
 
     def get_chapter_list(self, problems, chapter_id):
@@ -625,7 +610,8 @@ class Assignment(object):
         driver.find_element(By.ID, 'problems-select').click()
         wait.until(
             expect.visibility_of_element_located(
-                (By.XPATH, '//span[text()="Add Problems"]')
+                (By.XPATH,
+                 '//div[@class="homework-plan-exercise-select-topics"]')
             )
         )
         self.select_sections(driver, list(problems.keys()))
@@ -661,7 +647,7 @@ class Assignment(object):
                       (total, section, low, high))
                 available = self.get_chapter_list(all_available, section) if \
                     'ch' in section else all_available[section]
-                for i in range(total):
+                for _ in range(total):
                     ex = random.randint(0, len(available) - 1)
                     using.append(available[ex])
                     available.remove(available[ex])
@@ -673,31 +659,25 @@ class Assignment(object):
                     'ch' in section else all_available[section]
                 for position in range(problems[section]):
                     using.append(available[position])
-            elif problems[section] is list:
+            elif type(problems[section]) == list:
                 print('Adding %s custom if available' % len(problems[section]))
                 for ex in problems[section]:
                     for section in all_available:
                         if ex in all_available[section]:
                             using.append(ex)
         for exercise in set(using):
+            add_button = driver.find_element(
+                By.XPATH,
+                '//span[contains(@data-reactid,"%s")]' % exercise +
+                '/../../div[@class="controls-overlay"]')
+            Assignment.scroll_to(driver, add_button)
             ac = ActionChains(driver)
             time.sleep(0.5)
-            ac.move_to_element(
-                driver.find_element(
-                    By.XPATH,
-                    '//span[contains(@data-reactid,"%s")]' % exercise
-                )
-            )
-            ac.move_by_offset(0, -80)
+            ac.move_to_element(add_button)
+            for _ in range(60):
+                ac.move_by_offset(-1, 0)
             ac.click()
             ac.perform()
-        ActionChains(driver). \
-            move_to_element(
-                driver.find_element(
-                    By.XPATH, '//span[text()="Tutor Selections"]'
-                )). \
-            move_by_offset(0, -80). \
-            perform()
         wait.until(
             expect.visibility_of_element_located(
                 (By.XPATH, '//*[text()="Next"]')
@@ -753,7 +733,9 @@ class Assignment(object):
         if break_point == Assignment.BEFORE_EXERCISE_SELECT:
             return
         self.add_homework_problems(driver, problems)
-        driver.find_element(By.ID, 'feedback-select').click()
+        feedback = driver.find_element(By.ID, 'feedback-select')
+        Assignment.scroll_to(driver, feedback)
+        feedback.click()
         if feedback == 'immediate':
             driver.find_element(
                 By.XPATH,
@@ -865,7 +847,7 @@ class Assignment(object):
         raise NotImplementedError(inspect.currentframe().f_code.co_name)
 
     def change_homework(self, driver, title, description, periods, problems,
-                        status):
+                        feedback, status):
         """Edit a homework assignment."""
         raise NotImplementedError(inspect.currentframe().f_code.co_name)
 
@@ -930,7 +912,7 @@ class Assignment(object):
         page.wait_for_page_load()
 
     def delete_homework(self, driver, title, description, periods, problems,
-                        status):
+                        feedback, status):
         """Delete a homework assignment."""
         self.remove[Assignment.READING](
             driver=driver,
