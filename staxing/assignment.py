@@ -307,8 +307,9 @@ class Assignment(object):
         self.adjust_date_picker(driver, date_element, change)
         driver.find_element(
             By.XPATH,
-            '//div[contains(@class,"datepicker__day") and text()="%s"]' %
-            change.day
+            '//div[contains(@class,"datepicker__day") ' +
+            'and not(contains(@class,"disabled")) ' +
+            'and text()="%s"]' % change.day
         ).click()
 
     def assign_periods(self, driver, periods):
