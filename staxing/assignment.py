@@ -438,7 +438,7 @@ class Assignment(object):
         """Open the reading chapter list."""
         data_chapter = driver.find_element(
             By.XPATH,
-            '//h2[contains(@data-chapter-section,"%s")]/a' % chapter
+            '//div[@data-chapter-section="%s"]/a' % chapter
         )
         if (data_chapter.get_attribute('aria-expanded')) == 'false':
             data_chapter.click()
@@ -450,7 +450,7 @@ class Assignment(object):
                 print('Adding chapter: ' + section)
                 chapter = driver.find_element(
                     By.XPATH,
-                    '//h2[@data-chapter-section="%s"]' % section[2:] +
+                    '//div[@data-chapter-section="%s"]' % section[2:] +
                     '//i[contains(@class,"tutor-icon")]'
                 )
                 time.sleep(0.5)
