@@ -669,7 +669,7 @@ class Assignment(object):
         for exercise in set(using):
             add_button = driver.find_element(
                 By.XPATH,
-                '//span[contains(@data-reactid,"%s")]' % exercise +
+                '//span[contains(text(),"%s")]' % exercise +
                 '/../../div[@class="controls-overlay"]')
             Assignment.scroll_to(driver, add_button)
             ac = ActionChains(driver)
