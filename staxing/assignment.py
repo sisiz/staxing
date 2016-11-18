@@ -225,7 +225,7 @@ class Assignment(object):
         """Open the Add Assignment menu if it is closed."""
         driver.find_element(
             By.XPATH,
-            '//button[contains(@class,"dropdown-toggle")]'
+            '//button[contains(@class,"sidebar-toggle")]'
         ).click()
 
     def modify_time(self, time):
