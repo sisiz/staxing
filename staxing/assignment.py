@@ -242,12 +242,13 @@ class Assignment(object):
         target.click()
         if today.year == new_date.year and today.month == new_date.month:
             return
+
         months = {v: k for k, v in enumerate(calendar.month_name)}
 
-        previous_month = driver.find_element(
-            By.CLASS_NAME,
-            'datepicker__navigation--previous'
-        )
+        # previous_month = driver.find_element(
+        #     By.CLASS_NAME,
+        #     'datepicker__navigation--previous'
+        # )
         next_month = driver.find_element(
             By.CLASS_NAME,
             'datepicker__navigation--next'
@@ -270,16 +271,16 @@ class Assignment(object):
             month = months[month]
             year = int(year)
             time.sleep(1.0)
-        while year >= new_date.year and month > new_date.month:
-            previous_month.click()
-            current = driver.find_element(
-                By.CLASS_NAME,
-                'datepicker__current-month'
-            )
-            month, year = current.text.split(' ')
-            month = months[month]
-            year = int(year)
-            time.sleep(1.0)
+        # while year >= new_date.year and month > new_date.month:
+        #     previous_month.click()
+        #     current = driver.find_element(
+        #         By.CLASS_NAME,
+        #         'datepicker__current-month'
+        #     )
+        #     month, year = current.text.split(' ')
+        #     month = months[month]
+        #     year = int(year)
+        #     time.sleep(1.0)
 
     def assign_time(self, driver, time,
                     option=None, is_all=False, target='due'):
