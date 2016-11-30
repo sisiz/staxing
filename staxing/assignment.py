@@ -244,15 +244,6 @@ class Assignment(object):
             return
         months = {v: k for k, v in enumerate(calendar.month_name)}
 
-        # previoux month arrow not always available must check if it is there
-        previous_month = driver.find_elements(
-            By.CLASS_NAME,
-            'datepicker__navigation--previous'
-        )
-        if previous_month.length != 0:
-            previous_month = previous_month[0]
-        else:          # if no previous month arrow, errors if attmpt to click
-            previous_month = None
         next_month = driver.find_element(
             By.CLASS_NAME,
             'datepicker__navigation--next'
@@ -276,6 +267,12 @@ class Assignment(object):
             year = int(year)
             time.sleep(1.0)
         while year >= new_date.year and month > new_date.month:
+            # because it will only ever go back one month it's okay to find
+            # arrow inside the while loop
+            previous_month = driver.find_element(
+                By.CLASS_NAME,
+                'datepicker__navigation--previous'
+            )
             previous_month.click()
             current = driver.find_element(
                 By.CLASS_NAME,
@@ -330,16 +327,16 @@ class Assignment(object):
                 opens_on, opens_at = opens_on
             if isinstance(closes_on, tuple):
                 closes_on, closes_at = closes_on
-            self.assign_date(driver=driver, date=closes_on,
-                             is_all=True, target='due')
             self.assign_date(driver=driver, date=opens_on,
                              is_all=True, target='open')
-            if closes_at:
-                self.assign_time(driver=driver, time=closes_at,
-                                 is_all=True, target='due')
+            self.assign_date(driver=driver, date=closes_on,
+                             is_all=True, target='due')
             if opens_at:
                 self.assign_time(driver=driver, time=opens_at,
                                  is_all=True, target='open')
+            if closes_at:
+                self.assign_time(driver=driver, time=closes_at,
+                                 is_all=True, target='due')
             return
         # or locate important elements for each period/section
         options = {}
