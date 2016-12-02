@@ -223,10 +223,11 @@ class Assignment(object):
 
     def open_assignment_menu(self, driver):
         """Open the Add Assignment menu if it is closed."""
-        driver.find_element(
-            By.XPATH,
-            '//button[contains(@class,"sidebar-toggle")]'
-        ).click()
+        assignment_menu = driver.find_element(
+            By.XPATH, '//button[contains(@class,"sidebar-toggle")]'
+        )
+        if 'open' not in assignment_menu.get_attribute('class'):
+            assignment_menu.click()
 
     def modify_time(self, time):
         """Modify time string for react."""
@@ -388,24 +389,21 @@ class Assignment(object):
 
     def select_status(self, driver, status):
         """Select assignment status."""
+        element = driver.find_element(
+            By.XPATH, '//div[contains(@class,"footer")]')
+        Assignment.scroll_to(driver, element)
         if status == self.PUBLISH:
             print('Publishing...')
-            element = driver.find_element(By.CLASS_NAME, 'footer-buttons')
-            Assignment.scroll_to(driver, element)
             time.sleep(1)
             driver.find_element(
                 By.XPATH, '//button[contains(@class,"-publish")]').click()
         elif status == self.DRAFT:
             print('Saving draft')
-            element = driver.find_element(By.CLASS_NAME, 'footer-buttons')
-            Assignment.scroll_to(driver, element)
             time.sleep(1)
             element = driver.find_element(
                 By.XPATH, '//button[contains(@class," -save")]').click()
         elif status == self.CANCEL:
             print('Canceling assignment')
-            element = driver.find_element(By.CLASS_NAME, 'footer-buttons')
-            Assignment.scroll_to(driver, element)
             time.sleep(1)
             element = driver.find_element(
                 By.XPATH,
@@ -422,12 +420,10 @@ class Assignment(object):
                 pass
         elif status == self.DELETE:
             print('Deleting assignment')
-            element = driver.find_element(By.CLASS_NAME, 'footer-buttons')
-            Assignment.scroll_to(driver, element)
             time.sleep(1)
             element = driver.find_element(
                 By.XPATH,
-                '//span[contains(text(),"Delete")]/..'
+                '//button[contains(text(),"Delete")]'
             ).click()
             wait = WebDriverWait(driver, Assignment.WAIT_TIME)
             wait.until(
